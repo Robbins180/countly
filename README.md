@@ -1,50 +1,49 @@
-# Welcome to your Expo app 👋
+# 🧮 Countly
+**Your life, measured in moments.**  
+Track anything with one tap — haircuts, workouts, oil changes. Countly remembers so you don’t have to.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> Solo-built with Expo + React Native. Local-first, private by default, with an optional “forgettable” Pro tier later.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ MVP Features (v0.x)
+- One-tap counters (add / edit / delete / reset)
+- “Days since” display with due/overdue states
+- Local persistence via SQLite (offline-first)
+- Local notifications (target days + quiet hours)
+- JSON export / import (data ownership)
+- Polished dark UI (header, FAB, 2-column list)
+- Optional, opt-in anonymous analytics (PostHog/Amplitude)
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 🛠 Tech Stack
+- **App:** Expo (React Native, TypeScript)
+- **Routing:** `expo-router`
+- **Storage:** `expo-sqlite` (local-first)
+- **UI:** React Native, vector icons, haptics
+- **Notifications:** `expo-notifications` (local)
+- **Analytics (opt-in):** PostHog/Amplitude (free tier)
+- **Release tooling:** `standard-version` (semver + CHANGELOG + tags)
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## 🚀 Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Prereqs
+- Node LTS (≥ 18), npm
+- Git
+- Expo Go app on your phone (iOS/Android) — for instant preview
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+### Install & Run
 ```bash
-npm run reset-project
-```
+# clone and enter
+git clone https://github.com/<you>/countly.git
+cd countly
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+# install deps
+npm install
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# start dev server
+npm start
+# press 'w' for web, or scan the QR in Expo Go on your phone
