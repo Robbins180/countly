@@ -1,50 +1,41 @@
-{
-  "expo": {
-    "name": "countly",
-    "slug": "countly",
-    "version": "1.1.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "countly",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "buildNumber" : "2"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "versionCode" : 2
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
-  }
+﻿{
+    "expo":  {
+                 "name":  "countly",
+                 "slug":  "countly",
+                 "version":  "1.1.2",
+                 "orientation":  "portrait",
+                 "icon":  "./assets/images/icon.png",
+                 "scheme":  "countly",
+                 "userInterfaceStyle":  "automatic",
+                 "newArchEnabled":  true,
+                 "ios":  {
+                             "buildNumber":  "3"
+                         },
+                 "android":  {
+                                 "versionCode":  3
+                             },
+                 "web":  {
+                             "output":  "static",
+                             "favicon":  "./assets/images/favicon.png"
+                         },
+                 "plugins":  [
+                                 "expo-router",
+                                 [
+                                     "expo-splash-screen",
+                                     {
+                                         "image":  "./assets/images/splash-icon.png",
+                                         "imageWidth":  200,
+                                         "resizeMode":  "contain",
+                                         "backgroundColor":  "#ffffff",
+                                         "dark":  {
+                                                      "backgroundColor":  "#000000"
+                                                  }
+                                     }
+                                 ]
+                             ],
+                 "experiments":  {
+                                     "typedRoutes":  true,
+                                     "reactCompiler":  true
+                                 }
+             }
 }
