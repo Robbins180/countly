@@ -1,26 +1,36 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { View, FlatList } from 'react-native'
 import { Link } from 'expo-router'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
 import { CounterCard } from '../components/CounterCard'
 import { theme } from '../utils/theme'
-import { daysSince } from '../utils/date'
+import { MS_DAY, daysSince } from '../utils/date'
 
-// temporary mock data until DB (Day 3)
-const mock = [
-  { id: '1', title: 'Haircut', emoji: '💇', lastAt: Date.now() - 23 * 86_400_000, targetDays: 30 },
-  { id: '2', title: 'Oil Change', emoji: '🛢️', lastAt: Date.now() - 91 * 86_400_000, targetDays: 180 },
-  { id: '3', title: 'No Takeout', emoji: '🥗', lastAt: Date.now() - 12 * 86_400_000, targetDays: 999 },
-  { id: '4', title: 'Car Wash', emoji: '🚗', lastAt: Date.now() - 15 * 86_400_000, targetDays: 21 },
-  { id: '5', title: 'Date Night', emoji: '🍷', lastAt: Date.now() - 8 * 86_400_000, targetDays: 7 },
-]
+// NEW: the storage repo (AsyncStorage-backed)
+import { countersRepo, type Counter } from '../data'
 
 export default function Home() {
-  const data = useMemo(
-    () => mock.map(m => ({ ...m, days: daysSince(m.lastAt) })),
-    []
-  )
+  // holds persisted counters
+  const [items, setItems] = useState<Counter[]>([])
+
+  // refresh helper
+  const reload = () => {
+    countersRepo.all().then(setItems).catch(console.error)
+  }
+
+  // seed on first run, then load
+  useEffect(() => {
+    countersRepo
+      .seedIfEmpty([
+        { id: 'seed-1', title: 'Haircut', emoji: '💇', lastAt: Date.now() - 23 * MS_DAY, targetDays: 30 },
+        { id: 'seed-2', title: 'Oil Change', emoji: '🛢️', lastAt: Date.now() - 91 * MS_DAY, targetDays: 180 },
+      ])
+      .finally(reload)
+  }, [])
+
+  // derive display-only "days" value
+  const data = items.map(m => ({ ...m, days: daysSince(m.lastAt) }))
 
   const GUTTER = 12
   const contentPad = theme.pad
@@ -38,10 +48,11 @@ export default function Home() {
         renderItem={({ item }) => (
           <CounterCard
             title={item.title}
-            emoji={item.emoji}
+            emoji={item.emoji ?? undefined}
             days={item.days}
-            targetDays={item.targetDays}
-            onPress={() => {/* later: reset action */}}
+            targetDays={item.targetDays ?? undefined}
+            // tap to reset "lastAt" and refresh
+            onPress={async () => { await countersRepo.reset(item.id); reload() }}
           />
         )}
       />
@@ -52,3 +63,4 @@ export default function Home() {
     </View>
   )
 }
+
