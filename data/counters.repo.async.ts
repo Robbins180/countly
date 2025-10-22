@@ -46,4 +46,16 @@ export const countersRepoAsync: CountersRepo = {
     const list = await load()
     if (list.length === 0) await save(seed)
   },
+  async get(id) {
+    const list = await load()
+    return list.find(x => x.id === id)
+  },
+  async update(id, patch) {
+    const list = await load()
+    const i = list.findIndex(x => x.id === id)
+    if (i >= 0) {
+      list[i] = { ...list[i], ...patch}
+      await save(list)
+    }
+  }
 }
