@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 export default function RootLayout() {
 
     return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0B0B0C' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0B0B0codeC' }}>
       <Stack screenOptions={{ headerShown: false }} />
     </SafeAreaView>
     )

@@ -1,5 +1,7 @@
+import { useRouter } from 'expo-router'
+  const nav = useRouter() // move this to better spot after bugs are gone
 import { useEffect, useState } from 'react'
-import { View, FlatList } from 'react-native'
+import { View, FlatList, Modal, Text, TextInput, Pressable } from 'react-native'
 import { Link } from 'expo-router'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
@@ -13,11 +15,43 @@ import { countersRepo, type Counter } from '../data'
 export default function Home() {
   // holds persisted counters
   const [items, setItems] = useState<Counter[]>([])
+  const [editing, setEditing] = useState<Counter | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editEmoji, setEditEmoji] = useState('')
+  const [editTarget, setEditTarget] = useState('')
+
+// Start of Edit Functions 
+  function startEdit(item: Counter) {
+  setEditing(item)
+  setEditTitle(item.title)
+  setEditEmoji(item.emoji ?? '')
+  setEditTarget(item.targetDays != null ? String(item.targetDays) : '')
+}
+
+async function saveEdit() {
+  if (!editing) return
+  await countersRepo.update(editing.id, {
+    title: editTitle.trim(),
+    emoji: editEmoji.trim() || null,
+    targetDays: editTarget ? parseInt(editTarget, 10) : null,
+  })
+  setEditing(null)
+  reload()
+}
+
+async function deleteItem() {
+  if (!editing) return
+  await countersRepo.remove(editing.id)
+  setEditing(null)
+  reload()
+}
+// end of helpers
 
   // refresh helper
   const reload = () => {
     countersRepo.all().then(setItems).catch(console.error)
   }
+ 
 
   // seed on first run, then load
   useEffect(() => {
@@ -53,6 +87,9 @@ export default function Home() {
             targetDays={item.targetDays ?? undefined}
             // tap to reset "lastAt" and refresh
             onPress={async () => { await countersRepo.reset(item.id); reload() }}
+            onLongPress={() => startEdit(item)}
+
+
           />
         )}
       />
@@ -60,6 +97,59 @@ export default function Home() {
       <Link href="/add" asChild>
         <FAB onPress={() => {}} />
       </Link>
+      <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
+        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
+            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Edit Counter</Text>
+
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Title</Text>
+            <TextInput
+              value={editTitle}
+              onChangeText={setEditTitle}
+              placeholder="Title"
+              placeholderTextColor="#666"
+              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
+            />
+
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Emoji</Text>
+            <TextInput
+              value={editEmoji}
+              onChangeText={setEditEmoji}
+              placeholder="e.g. 💇"
+              placeholderTextColor="#666"
+              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
+            />
+
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Target days</Text>
+            <TextInput
+              value={editTarget}
+              onChangeText={setEditTarget}
+              keyboardType="numeric"
+              placeholder="e.g. 30"
+              placeholderTextColor="#666"
+              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 16 }}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end' }}>
+              <Pressable onPress={() => setEditing(null)} style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
+                <Text style={{ color: '#aaa' }}>Cancel</Text>
+              </Pressable>
+
+              <Pressable onPress={deleteItem} style={{ backgroundColor: '#372527', borderColor: '#4E1F25', borderWidth: 1, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 }}>
+                <Text style={{ color: '#FF6B6B', fontWeight: '700' }}>Delete</Text>
+              </Pressable>
+
+              <Pressable
+                disabled={!editTitle.trim()}
+                onPress={saveEdit}
+                style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   )
 }

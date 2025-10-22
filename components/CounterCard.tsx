@@ -8,6 +8,7 @@ type Props = {
   days: number
   targetDays?: number
   onPress?: () => void
+  onLongPress?: () => void
 }
 
 const statusColors: Record<Status, { border: string; text: string }> = {
@@ -16,13 +17,15 @@ const statusColors: Record<Status, { border: string; text: string }> = {
   due:  { border: '#4E1F25', text: '#FF6B6B' },
 }
 
-export function CounterCard({ title, emoji = '🧮', days, targetDays, onPress }: Props) {
+export function CounterCard({ title, emoji = '🧮', days, targetDays, onPress, onLongPress }: Props) {
   const status = getStatus(days, targetDays)
   const colors = statusColors[status]
 
   return (
     <Pressable
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={300}
       style={({ pressed }) => ({
         backgroundColor: theme.card,
         borderRadius: theme.radius * 1.2,
