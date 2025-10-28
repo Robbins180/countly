@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
   const nav = useRouter() // move this to better spot after bugs are gone
 import { useEffect, useState } from 'react'
-import { View, FlatList, Modal, Text, TextInput, Pressable } from 'react-native'
+import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
 import { Link } from 'expo-router'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
@@ -180,7 +180,25 @@ async function deleteItem() {
               emoji={item.emoji ?? undefined}
               days={item.days}
               targetDays={item.targetDays ?? undefined}
-              onPress={async () => { await countersRepo.reset(item.id); reload() }}
+              // Adds Alert to show Yes/No dialog before resseting
+              onPress={() => { 
+                Alert.alert(
+                  'Reset days?',
+                  `This will set “${item.title}” to 0 days.`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                      text: 'Reset',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await countersRepo.reset(item.id)
+                        reload()
+                      }
+                    }
+                  ]
+                )
+              }}
+
               // onLongPress={() => startEdit(item)}  {/* keep your long-press handler if you added inline edit */}
             />
           )}
