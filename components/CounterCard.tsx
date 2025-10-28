@@ -48,6 +48,7 @@ export function CounterCard({
       onLongPress={onLongPress}
       delayLongPress={300}
       style={{
+        position: 'relative',
         flex: 1,
         minHeight: 120,
         backgroundColor: theme.card,
@@ -56,8 +57,36 @@ export function CounterCard({
         borderRadius: 12,
         padding: 12,
         justifyContent: 'space-between',
+
+        // subtle glow/shadow when overdue (native + web-friendly)
+        shadowColor: overdue ? OD.text : 'transparent',
+        shadowOpacity: overdue ? 0.25 : 0,
+        shadowRadius: overdue ? 10 : 0,
+        shadowOffset: overdue ? { width: 0, height: 6 } : { width: 0, height: 0 },
+        elevation: overdue ? 5 : 0,
       }}
     >
+        {overdue && (
+        <View
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 999,
+            backgroundColor: OD.bg,
+            borderWidth: 1,
+            borderColor: OD.text,
+          }}
+        >
+          <Text style={{ color: OD.text, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 }}>
+            DUE
+          </Text>
+        </View>
+      )}
+
+
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         {emoji ? (
           <Text style={{ fontSize: 20 }}>{emoji}</Text>

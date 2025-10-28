@@ -80,6 +80,22 @@ async function deleteItem() {
 }
 // end of helpers
 
+// Calls expisting repo .add() to create a new counter from currently edited one, the refreshes the list and shows toast
+  async function duplicateSelected() {
+  if (!editing) return
+  // copy fields; start fresh at 0 days (new lastAt = now)
+  await countersRepo.add({
+    title: editing.title + ' (copy)',
+    emoji: editing.emoji ?? null,
+    targetDays: editing.targetDays ?? null,
+    lastAt: Date.now(),
+  })
+  setEditing(null)
+  reload()
+  showToast('Duplicated')
+}
+
+
   // refresh helper
   const reload = () => {
     countersRepo.all().then(setItems).catch(console.error)
@@ -270,6 +286,21 @@ async function deleteItem() {
               <Pressable onPress={deleteItem} style={{ backgroundColor: '#372527', borderColor: '#4E1F25', borderWidth: 1, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 }}>
                 <Text style={{ color: '#FF6B6B', fontWeight: '700' }}>Delete</Text>
               </Pressable>
+
+              <Pressable
+                  onPress={duplicateSelected}
+                  style={{
+                    backgroundColor: '#1f2a38',
+                    borderColor: '#293545',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                  }}
+                  >
+                    <Text style={{ color: '#cfe1ff', fontWeight: '700' }}>Duplicate</Text>
+              </Pressable>
+
 
               <Pressable
                 disabled={!editTitle.trim()}
