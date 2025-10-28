@@ -20,6 +20,9 @@ export default function Home() {
   const [editEmoji, setEditEmoji] = useState('')
   const [editTarget, setEditTarget] = useState('')
 
+    // State to sort the mode
+  const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
+
 // Start of Edit Functions 
   function startEdit(item: Counter) {
   setEditing(item)
@@ -64,14 +67,53 @@ async function deleteItem() {
   }, [])
 
   // derive display-only "days" value
-  const data = items.map(m => ({ ...m, days: daysSince(m.lastAt) }))
+  const data = items
+    .map(m => ({ ...m, days: daysSince(m.lastAt) }))
+    .sort((a, b) => {
+      if (sortMode === 'name') return a.title.localeCompare(b.title)
+      // 'due' = items with GREATER (overdue) days first, then by targetDays proximity
+      const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
+      const bDelta = b.targetDays != null ? b.targetDays - b.days : Infinity
+      // smaller delta means “due sooner”; negatives (overdue) should float to top
+      return aDelta - bDelta
+    })
+
 
   const GUTTER = 12
   const contentPad = theme.pad
 
+
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <Header />
+
+        <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', gap: 8 }}>
+          <Text style={{ color: theme.text, opacity: 0.7, marginRight: 6 }}>Sort:</Text>
+
+          <Pressable
+            onPress={() => setSortMode('name')}
+            style={{
+              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+              borderWidth: 1, borderColor: sortMode === 'name' ? theme.primary : theme.border,
+              backgroundColor: sortMode === 'name' ? '#1d263b' : 'transparent'
+            }}
+          >
+            <Text style={{ color: sortMode === 'name' ? theme.primary : theme.text }}>Name</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setSortMode('due')}
+            style={{
+              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+              borderWidth: 1, borderColor: sortMode === 'due' ? theme.primary : theme.border,
+              backgroundColor: sortMode === 'due' ? '#1d263b' : 'transparent'
+            }}
+          >
+            <Text style={{ color: sortMode === 'due' ? theme.primary : theme.text }}>Due soon</Text>
+          </Pressable>
+        </View>
+
 
               {data.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.pad }}>
