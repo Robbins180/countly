@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router'
   const nav = useRouter() // move this to better spot after bugs are gone
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
 import { Link } from 'expo-router'
 import { Header } from '../components/Header'
@@ -32,6 +32,11 @@ export default function Home() {
   // Holds Current search string
   const [filterText, setFilterText] = useState('')
 
+  //Toast Feedback after actions
+ const [toast, setToast] = useState<string | null>(null)
+ const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+
 
 ////////////////////////////////////////////// functions //////////////////////////////////////
   
@@ -42,6 +47,19 @@ export default function Home() {
   setEditEmoji(item.emoji ?? '')
   setEditTarget(item.targetDays != null ? String(item.targetDays) : '')
 }
+
+// Toast function
+ const showToast = (msg: string) => {
+  setToast(msg)
+  if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+  toastTimerRef.current = setTimeout(() => setToast(null), 1600)
+}
+  // Quick feedback after local message
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    }
+  }, [])
 
 async function saveEdit() {
   if (!editing) return
@@ -193,13 +211,13 @@ async function deleteItem() {
                       onPress: async () => {
                         await countersRepo.reset(item.id)
                         reload()
+                        showToast('Reset!') // Toast <--
                       }
                     }
                   ]
                 )
               }}
-
-              // onLongPress={() => startEdit(item)}  {/* keep your long-press handler if you added inline edit */}
+              onLongPress={() => startEdit(item)}
             />
           )}
         />
