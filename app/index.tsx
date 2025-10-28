@@ -73,26 +73,37 @@ async function deleteItem() {
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <Header />
 
-      <FlatList
-        data={data}
-        keyExtractor={(it) => it.id}
-        numColumns={2}
-        contentContainerStyle={{ paddingHorizontal: contentPad, paddingBottom: 96, gap: GUTTER }}
-        columnWrapperStyle={{ gap: GUTTER }}
-        renderItem={({ item }) => (
-          <CounterCard
-            title={item.title}
-            emoji={item.emoji ?? undefined}
-            days={item.days}
-            targetDays={item.targetDays ?? undefined}
-            // tap to reset "lastAt" and refresh
-            onPress={async () => { await countersRepo.reset(item.id); reload() }}
-            onLongPress={() => startEdit(item)}
+              {data.length === 0 ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.pad }}>
+          <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
+            No counters yet
+          </Text>
+          <Text style={{ color: '#9aa0a6', textAlign: 'center', lineHeight: 20, marginBottom: 12 }}>
+            Tap the + button to add your first counter.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={data}
+          keyExtractor={(it) => it.id}
+          numColumns={2}
+          contentContainerStyle={{ paddingHorizontal: theme.pad, paddingBottom: 96, gap: 12 }}
+          columnWrapperStyle={{ gap: 12 }}
+          renderItem={({ item }) => (
+            <CounterCard
+              title={item.title}
+              emoji={item.emoji ?? undefined}
+              days={item.days}
+              targetDays={item.targetDays ?? undefined}
+              onPress={async () => { await countersRepo.reset(item.id); reload() }}
+              // onLongPress={() => startEdit(item)}  {/* keep your long-press handler if you added inline edit */}
+            />
+          )}
+        />
+      )}
 
 
-          />
-        )}
-      />
+     
 
       <Link href="/add" asChild>
         <FAB onPress={() => {}} />
