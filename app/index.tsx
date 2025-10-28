@@ -8,6 +8,7 @@ import { FAB } from '../components/FAB'
 import { CounterCard } from '../components/CounterCard'
 import { theme } from '../utils/theme'
 import { MS_DAY, daysSince } from '../utils/date'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // NEW: the storage repo (AsyncStorage-backed)
 import { countersRepo, type Counter } from '../data'
@@ -23,6 +24,17 @@ export default function Home() {
     // State to sort the mode
   const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
 
+    const GUTTER = 12
+  const contentPad = theme.pad
+
+  const SORT_KEY = 'ui.sortMode' // stable key for this screen
+
+  // Holds Current search string
+  const [filterText, setFilterText] = useState('')
+
+
+////////////////////////////////////////////// functions //////////////////////////////////////
+  
 // Start of Edit Functions 
   function startEdit(item: Counter) {
   setEditing(item)
@@ -66,27 +78,58 @@ async function deleteItem() {
       .finally(reload)
   }, [])
 
-  // derive display-only "days" value
-  const data = items
-    .map(m => ({ ...m, days: daysSince(m.lastAt) }))
-    .sort((a, b) => {
-      if (sortMode === 'name') return a.title.localeCompare(b.title)
-      // 'due' = items with GREATER (overdue) days first, then by targetDays proximity
-      const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
-      const bDelta = b.targetDays != null ? b.targetDays - b.days : Infinity
-      // smaller delta means “due sooner”; negatives (overdue) should float to top
-      return aDelta - bDelta
-    })
+  // Replace your current data derivation with this version that filters by title (case-insensitive) before sorting
+    const normalizedFilter = filterText.trim().toLowerCase()
+    const data = items
+      .filter(m => !normalizedFilter || m.title.toLowerCase().includes(normalizedFilter))
+      .map(m => ({ ...m, days: daysSince(m.lastAt) }))
+      .sort((a, b) => {
+        if (sortMode === 'name') return a.title.localeCompare(b.title)
+        const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
+        const bDelta = b.targetDays != null ? b.targetDays - b.days : Infinity
+        return aDelta - bDelta
+      })
 
 
-  const GUTTER = 12
-  const contentPad = theme.pad
+
+
+  
+  // Reads previously saved sort mode on first render
+  useEffect(() => {
+    AsyncStorage.getItem(SORT_KEY).then((v) => {
+      if (v === 'name' || v === 'due') setSortMode(v)
+    }).catch(console.error)
+  }, [])
+
+  // Writes current mode whenever the user toggles it
+  useEffect(() => {
+    AsyncStorage.setItem(SORT_KEY, sortMode).catch(console.error)
+  }, [sortMode])
 
 
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <Header />
+
+        <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6 }}>
+          <TextInput
+            value={filterText}
+            onChangeText={setFilterText}
+            placeholder="Search counters…"
+            placeholderTextColor="#666"
+            style={{
+              color: theme.text,
+              backgroundColor: theme.card,
+              borderColor: theme.border,
+              borderWidth: 1,
+              borderRadius: 10,
+              paddingVertical: 10,
+              paddingHorizontal: 12,
+            }}
+          />
+        </View>
+
 
         <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', gap: 8 }}>
           <Text style={{ color: theme.text, opacity: 0.7, marginRight: 6 }}>Sort:</Text>

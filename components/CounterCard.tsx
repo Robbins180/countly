@@ -56,7 +56,7 @@ export function CounterCard({ title, emoji = '🧮', days, targetDays, onPress, 
           backgroundColor: colors.border,
         }}>
           <Text style={{ color: colors.text, fontSize: 12 }}>
-            Target: {targetDays}d
+            Target: {targetDays}
           </Text>
         </View>
       )}
