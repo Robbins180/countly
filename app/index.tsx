@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router'
-  const nav = useRouter() // move this to better spot after bugs are gone
 import { useEffect, useState, useRef } from 'react'
 import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
 import { Link } from 'expo-router'
@@ -20,6 +19,7 @@ export default function Home() {
   const [editTitle, setEditTitle] = useState("")
   const [editEmoji, setEditEmoji] = useState('')
   const [editTarget, setEditTarget] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
 
     // State to sort the mode
   const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
@@ -36,6 +36,7 @@ export default function Home() {
  const [toast, setToast] = useState<string | null>(null)
  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+ 
 
 
 ////////////////////////////////////////////// functions //////////////////////////////////////
@@ -113,8 +114,11 @@ async function deleteItem() {
   }, [])
 
   // Replace your current data derivation with this version that filters by title (case-insensitive) before sorting
-    const normalizedFilter = filterText.trim().toLowerCase()
+
+   const normalizedFilter = filterText.trim().toLowerCase()
+
     const data = items
+      .filter(m => (showArchived ? true : !m.archived))  // ← hide archived unless toggled
       .filter(m => !normalizedFilter || m.title.toLowerCase().includes(normalizedFilter))
       .map(m => ({ ...m, days: daysSince(m.lastAt) }))
       .sort((a, b) => {
@@ -123,6 +127,7 @@ async function deleteItem() {
         const bDelta = b.targetDays != null ? b.targetDays - b.days : Infinity
         return aDelta - bDelta
       })
+
 
 
 
@@ -189,6 +194,21 @@ async function deleteItem() {
           >
             <Text style={{ color: sortMode === 'due' ? theme.primary : theme.text }}>Due soon</Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => setShowArchived(s => !s)}
+            style={{
+              marginLeft: 8,
+              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+              borderWidth: 1, borderColor: showArchived ? theme.primary : theme.border,
+              backgroundColor: showArchived ? '#1d263b' : 'transparent'
+            }}
+          >
+            <Text style={{ color: showArchived ? theme.primary : theme.text }}>
+              {showArchived ? 'Showing archived' : 'Hide archived'}
+            </Text>
+          </Pressable>
+
         </View>
 
 
@@ -278,14 +298,52 @@ async function deleteItem() {
               style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 16 }}
             />
 
-            <View style={{ flexDirection: 'row', gap: 10, justifyContent: 'flex-end' }}>
-              <Pressable onPress={() => setEditing(null)} style={{ paddingVertical: 12, paddingHorizontal: 14 }}>
-                <Text style={{ color: '#aaa' }}>Cancel</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end' }}>
+
+              
+              <Pressable onPress={() => setEditing(null)} style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}>
+
+
+                <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Cancel</Text>
+
               </Pressable>
 
-              <Pressable onPress={deleteItem} style={{ backgroundColor: '#372527', borderColor: '#4E1F25', borderWidth: 1, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 }}>
+              <Pressable onPress={deleteItem} style={{ backgroundColor: '#372527', borderColor: '#4E1F25', borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}>
+
                 <Text style={{ color: '#FF6B6B', fontWeight: '700' }}>Delete</Text>
               </Pressable>
+
+              <Pressable
+                onPress={async () => {
+                  if (!editing) return
+                  if (editing.archived) {
+                    await countersRepo.unarchive(editing.id)
+                    showToast('Unarchived')
+                  } else {
+                    await countersRepo.archive(editing.id)
+                    showToast('Archived')
+                  }
+                  setEditing(null)
+                  reload()
+                }}
+                style={{
+                  backgroundColor: editing?.archived ? '#233224' : '#2c2a1c',
+                  borderColor: editing?.archived ? '#2d5430' : '#5a4f1f',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
+                  flexGrow: 1,
+                  minWidth: '48%',
+                  alignItems: 'center',
+                }}
+
+              >
+                <Text style={{ color: editing?.archived ? '#9DFFB0' : '#F3E38A', fontWeight: '700' }}>
+                  {editing?.archived ? 'Unarchive' : 'Archive'}
+                </Text>
+              </Pressable>
+
 
               <Pressable
                   onPress={duplicateSelected}
@@ -296,6 +354,9 @@ async function deleteItem() {
                     borderRadius: 8,
                     paddingVertical: 12,
                     paddingHorizontal: 16,
+                    flexGrow: 1,
+                    minWidth: '48%',
+                    alignItems: 'center',
                   }}
                   >
                     <Text style={{ color: '#cfe1ff', fontWeight: '700' }}>Duplicate</Text>
@@ -305,7 +366,8 @@ async function deleteItem() {
               <Pressable
                 disabled={!editTitle.trim()}
                 onPress={saveEdit}
-                style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 12, paddingHorizontal: 16 }}
+                  style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+
               >
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
               </Pressable>
