@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router'
 import { useEffect, useState, useRef } from 'react'
 import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
-import { Link } from 'expo-router'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
 import { CounterCard } from '../components/CounterCard'
@@ -20,6 +19,13 @@ export default function Home() {
   const [editEmoji, setEditEmoji] = useState('')
   const [editTarget, setEditTarget] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+
+  // ADD MODAL state
+  const [adding, setAdding] = useState(false)
+  const [addTitle, setAddTitle] = useState('')
+  const [addEmoji, setAddEmoji] = useState('')
+  const [addTarget, setAddTarget] = useState('')
+
 
     // State to sort the mode
   const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
@@ -79,7 +85,27 @@ async function deleteItem() {
   setEditing(null)
   reload()
 }
+
+// create a new counter
+async function addNew() {
+  if (!addTitle.trim()) return
+  await countersRepo.add({
+    title: addTitle.trim(),
+    emoji: addEmoji.trim() ? addEmoji.trim() : null,
+    targetDays: addTarget ? parseInt(addTarget, 10) : null,
+    lastAt: Date.now(), // start at 0 days
+  })
+  setAdding(false)
+  setAddTitle('')
+  setAddEmoji('')
+  setAddTarget('')
+  reload()
+  showToast('Added')
+}
+
 // end of helpers
+
+
 
 // Calls expisting repo .add() to create a new counter from currently edited one, the refreshes the list and shows toast
   async function duplicateSelected() {
@@ -262,9 +288,70 @@ async function deleteItem() {
 
      
 
-      <Link href="/add" asChild>
-        <FAB onPress={() => {}} />
-      </Link>
+      <FAB onPress={() => {
+          // reset fields, then show modal
+          setAddTitle('')
+          setAddEmoji('')
+          setAddTarget('')
+          setAdding(true)
+        }} />
+
+      {/* ADD MODAL */}
+      <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
+        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
+            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Add Counter</Text>
+
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Title</Text>
+            <TextInput
+              value={addTitle}
+              onChangeText={setAddTitle}
+              placeholder="Title"
+              placeholderTextColor="#666"
+              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
+            />
+
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Emoji</Text>
+            <TextInput
+              value={addEmoji}
+              onChangeText={setAddEmoji}
+              placeholder="e.g. 💇"
+              placeholderTextColor="#666"
+              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
+            />
+
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Target days</Text>
+            <TextInput
+              value={addTarget}
+              onChangeText={setAddTarget}
+              keyboardType="numeric"
+              placeholder="e.g. 30"
+              placeholderTextColor="#666"
+              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 16 }}
+            />
+
+            {/* Responsive button row (2×2 on phones) */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end' }}>
+              <Pressable
+                onPress={() => setAdding(false)}
+                style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                disabled={!addTitle.trim()}
+                onPress={addNew}
+                style={{ opacity: addTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
       <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
           <View style={{ width: '100%', maxWidth: 440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
