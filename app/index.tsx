@@ -11,6 +11,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 // NEW: the storage repo (AsyncStorage-backed)
 import { countersRepo, type Counter } from '../data'
 
+//  Palettes (small and simple)
+const PALETTES = {
+  indigo: { key: 'indigo', name: 'Indigo', accent: '#7C9CFF' },
+  emerald: { key: 'emerald', name: 'Emerald', accent: '#46D19E' },
+  amber: { key: 'amber', name: 'Amber', accent: '#F0C06A' },
+} as const
+type PaletteKey = keyof typeof PALETTES
+
+
 export default function Home() {
   // holds persisted counters
   const [items, setItems] = useState<Counter[]>([])
@@ -26,6 +35,7 @@ export default function Home() {
   const [addEmoji, setAddEmoji] = useState('')
   const [addTarget, setAddTarget] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
+  const [styleOpen, setStyleOpen] = useState(false)
 
   const COMMON_EMOJIS = ['💇','🛢️','🚗','🍷','🥗','🏋️','📚','🧹','🧼','🛒','💊','🧑‍🍳','🪥','🧵','🧰','📦','🛏️','🔋','🔧','📞','💡']
 
@@ -38,6 +48,7 @@ export default function Home() {
   const contentPad = theme.pad
 
   const SORT_KEY = 'ui.sortMode' // stable key for this screen
+  const PREF_PALETTE = 'ui.sortMode'
   const PREF_SHOW_ARCHIVED = 'ui.showArchived'
   const PREF_FILTER = 'ui.filterText'
 
@@ -48,6 +59,11 @@ export default function Home() {
   //Toast Feedback after actions
  const [toast, setToast] = useState<string | null>(null)
  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Holds Color theme Palletes 
+  const [paletteKey, setPaletteKey] = useState<PaletteKey>('indigo')
+  const accent = PALETTES[paletteKey].accent
+
 
  
 
@@ -187,6 +203,21 @@ async function addNew() {
     AsyncStorage.setItem(PREF_FILTER, filterText).catch(console.error)
   }, [filterText])
 
+  // load palette on mount
+  useEffect(() => {
+    AsyncStorage.getItem(PREF_PALETTE)
+      .then(v => {
+        if (v && (v in PALETTES)) setPaletteKey(v as PaletteKey)
+      })
+      .catch(console.error)
+  }, [])
+
+  // save palette when it changes
+  useEffect(() => {
+    AsyncStorage.setItem(PREF_PALETTE, paletteKey).catch(console.error)
+  }, [paletteKey])
+
+
 
   // keeps existing sort loader
   useEffect(() => {
@@ -210,6 +241,10 @@ async function addNew() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <Header />
+
+        {/* palette accent under header */}
+        <View style={{ height: 6, backgroundColor: accent }} />
+        <View style={{ height: 1, backgroundColor: '#ffffff22' }} />
 
         <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6 }}>
           <TextInput
@@ -260,11 +295,11 @@ async function addNew() {
             style={{
               marginLeft: 8,
               paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: showArchived ? theme.primary : theme.border,
+              borderWidth: 1, borderColor: showArchived ? accent : theme.border,
               backgroundColor: showArchived ? '#1d263b' : 'transparent'
             }}
           >
-            <Text style={{ color: showArchived ? theme.primary : theme.text }}>
+            <Text style={{ color: showArchived ? accent : theme.text }}>
               {showArchived ? 'Showing archived' : 'Hide archived'}
             </Text>
           </Pressable>
@@ -280,6 +315,19 @@ async function addNew() {
           >
             <Text style={{ color: theme.text }}>Export</Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => setStyleOpen(true)}
+            style={{
+              marginLeft: 8,
+              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+              borderWidth: 1, borderColor: theme.border,
+              backgroundColor: 'transparent'
+            }}
+          >
+            <Text style={{ color: theme.text }}>Style</Text>
+          </Pressable>
+
 
 
         </View>
@@ -410,7 +458,7 @@ async function addNew() {
               <Pressable
                 disabled={!addTitle.trim()}
                 onPress={addNew}
-                style={{ opacity: addTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+                style={{ opacity: addTitle.trim() ? 1 : 0.5, backgroundColor: accent, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
               >
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
               </Pressable>
@@ -451,6 +499,55 @@ async function addNew() {
         </View>
       </Modal>
 
+      {/* STYLE / PALETTE MODAL */}
+      <Modal visible={styleOpen} transparent animationType="fade" onRequestClose={() => setStyleOpen(false)}>
+        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 460, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
+            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Choose style</Text>
+
+            <View style={{ gap: 10 }}>
+              {Object.values(PALETTES).map(p => (
+                <Pressable
+                  key={p.key}
+                  onPress={() => { setPaletteKey(p.key as PaletteKey); setStyleOpen(false); showToast(`${p.name} applied`) }}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: (paletteKey === p.key) ? p.accent : theme.border,
+                    backgroundColor: (paletteKey === p.key) ? '#10151e' : theme.bg,
+                    borderRadius: 10,
+                    padding: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 999, backgroundColor: p.accent }} />
+                    <Text style={{ color: theme.text, fontWeight: '700' }}>{p.name}</Text>
+                  </View>
+                  {paletteKey === p.key ? (
+                    <Text style={{ color: p.accent, fontWeight: '800' }}>✓</Text>
+                  ) : (
+                    <Text style={{ color: '#9aa0a6' }}>Select</Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+              <Pressable
+                onPress={() => setStyleOpen(false)}
+                style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
+        {/* EDIT MODAL */}
       <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
           <View style={{ width: '100%', maxWidth: 440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
@@ -573,7 +670,7 @@ async function addNew() {
               <Pressable
                 disabled={!editTitle.trim()}
                 onPress={saveEdit}
-                  style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+                  style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: accent, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
 
               >
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
