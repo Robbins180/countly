@@ -25,6 +25,7 @@ export default function Home() {
   const [addTitle, setAddTitle] = useState('')
   const [addEmoji, setAddEmoji] = useState('')
   const [addTarget, setAddTarget] = useState('')
+  const [exportOpen, setExportOpen] = useState(false)
 
 
     // State to sort the mode
@@ -34,6 +35,9 @@ export default function Home() {
   const contentPad = theme.pad
 
   const SORT_KEY = 'ui.sortMode' // stable key for this screen
+  const PREF_SHOW_ARCHIVED = 'ui.showArchived'
+  const PREF_FILTER = 'ui.filterText'
+
 
   // Holds Current search string
   const [filterText, setFilterText] = useState('')
@@ -171,6 +175,33 @@ async function addNew() {
     AsyncStorage.setItem(SORT_KEY, sortMode).catch(console.error)
   }, [sortMode])
 
+  // Async saves when they change prefs
+  useEffect(() => {
+    AsyncStorage.setItem(PREF_SHOW_ARCHIVED, showArchived ? '1' : '0').catch(console.error)
+  }, [showArchived])
+
+  useEffect(() => {
+    AsyncStorage.setItem(PREF_FILTER, filterText).catch(console.error)
+  }, [filterText])
+
+
+  // keeps existing sort loader
+  useEffect(() => {
+    AsyncStorage
+      .multiGet([PREF_SHOW_ARCHIVED, PREF_FILTER])
+      .then((entries) => {
+        const map = Object.fromEntries(entries)
+        if (map[PREF_SHOW_ARCHIVED] != null) {
+          setShowArchived(map[PREF_SHOW_ARCHIVED] === '1')
+        }
+        if (map[PREF_FILTER] != null) {
+          setFilterText(map[PREF_FILTER] as string)
+        }
+      })
+      .catch(console.error)
+  }, [])
+  
+
 
 
   return (
@@ -234,6 +265,19 @@ async function addNew() {
               {showArchived ? 'Showing archived' : 'Hide archived'}
             </Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => setExportOpen(true)}
+            style={{
+              marginLeft: 8,
+              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+              borderWidth: 1, borderColor: theme.border,
+              backgroundColor: 'transparent'
+            }}
+          >
+            <Text style={{ color: theme.text }}>Export</Text>
+          </Pressable>
+
 
         </View>
 
@@ -351,6 +395,37 @@ async function addNew() {
         </View>
       </Modal>
 
+      {/* EXPORT MODAL */}
+      <Modal visible={exportOpen} transparent animationType="fade" onRequestClose={() => setExportOpen(false)}>
+        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 540, maxHeight: '80%', backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
+            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Export JSON</Text>
+
+            <Text style={{ color: '#9aa0a6', marginBottom: 8 }}>
+              Long-press to select and copy. This includes all counters (archived too).
+            </Text>
+
+            <View style={{ flex: 1, borderWidth: 1, borderColor: theme.border, borderRadius: 8, backgroundColor: theme.bg, padding: 12 }}>
+              <Text
+                selectable
+                style={{ color: '#cfe1ff', fontFamily: 'monospace', fontSize: 12, lineHeight: 18 }}
+              >
+                {JSON.stringify(items, null, 2)}
+              </Text>
+            </View>
+
+            {/* Buttons: Close only (no deps) */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+              <Pressable
+                onPress={() => setExportOpen(false)}
+                style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+              >
+                <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
