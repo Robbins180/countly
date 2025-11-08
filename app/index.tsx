@@ -27,6 +27,9 @@ export default function Home() {
   const [addTarget, setAddTarget] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
 
+  const COMMON_EMOJIS = ['💇','🛢️','🚗','🍷','🥗','🏋️','📚','🧹','🧼','🛒','💊','🧑‍🍳','🪥','🧵','🧰','📦','🛏️','🔋','🔧','📞','💡']
+
+
 
     // State to sort the mode
   const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
@@ -364,6 +367,27 @@ async function addNew() {
               style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
             />
 
+            {/* Quick emoji picker (Add) */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              {COMMON_EMOJIS.map(e => (
+                <Pressable
+                  key={e}
+                  onPress={() => setAddEmoji(e)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: addEmoji === e ? theme.primary : theme.border,
+                    backgroundColor: addEmoji === e ? '#1d263b' : theme.bg,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+
             <Text style={{ color: theme.text, marginBottom: 6 }}>Target days</Text>
             <TextInput
               value={addTarget}
@@ -449,6 +473,27 @@ async function addNew() {
               placeholderTextColor="#666"
               style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
             />
+
+            {/* Quick emoji picker (Edit) */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              {COMMON_EMOJIS.map(e => (
+                <Pressable
+                  key={e}
+                  onPress={() => setEditEmoji(e)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: editEmoji === e ? theme.primary : theme.border,
+                    backgroundColor: editEmoji === e ? '#1d263b' : theme.bg,
+                    borderRadius: 8,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>{e}</Text>
+                </Pressable>
+              ))}
+            </View>
+
 
             <Text style={{ color: theme.text, marginBottom: 6 }}>Target days</Text>
             <TextInput
