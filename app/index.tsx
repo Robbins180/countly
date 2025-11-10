@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router'
+
 import { useEffect, useState, useRef } from 'react'
 import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
 import { Header } from '../components/Header'
@@ -44,13 +44,14 @@ export default function Home() {
     // State to sort the mode
   const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
 
-    const GUTTER = 12
-  const contentPad = theme.pad
-
   const SORT_KEY = 'ui.sortMode' // stable key for this screen
-  const PREF_PALETTE = 'ui.sortMode'
+  const PREF_PALETTE = 'ui.palette'
+  const OLD_PREF_PALETTE = 'ui.plaette' // migrate from old typo
+
+
   const PREF_SHOW_ARCHIVED = 'ui.showArchived'
   const PREF_FILTER = 'ui.filterText'
+  
 
 
   // Holds Current search string
@@ -61,8 +62,9 @@ export default function Home() {
  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Holds Color theme Palletes 
-  const [paletteKey, setPaletteKey] = useState<PaletteKey>('indigo')
+  const [paletteKey, setPaletteKey] = useState<'indigo' | 'emerald' | 'amber'>('indigo')
   const accent = PALETTES[paletteKey].accent
+
 
 
  
@@ -199,23 +201,51 @@ async function addNew() {
     AsyncStorage.setItem(PREF_SHOW_ARCHIVED, showArchived ? '1' : '0').catch(console.error)
   }, [showArchived])
 
-  useEffect(() => {
-    AsyncStorage.setItem(PREF_FILTER, filterText).catch(console.error)
-  }, [filterText])
-
-  // load palette on mount
-  useEffect(() => {
-    AsyncStorage.getItem(PREF_PALETTE)
-      .then(v => {
-        if (v && (v in PALETTES)) setPaletteKey(v as PaletteKey)
-      })
-      .catch(console.error)
-  }, [])
+ 
 
   // save palette when it changes
   useEffect(() => {
     AsyncStorage.setItem(PREF_PALETTE, paletteKey).catch(console.error)
   }, [paletteKey])
+
+  // load palette on mount (with migration)
+  useEffect(() => {
+    AsyncStorage.multiGet([PREF_PALETTE, OLD_PREF_PALETTE])
+      .then(entries => {
+        const map = Object.fromEntries(entries)
+        const v = map[PREF_PALETTE]
+        const old = map[OLD_PREF_PALETTE]
+
+        if (v === 'indigo' || v === 'emerald' || v === 'amber') {
+          setPaletteKey(v as any)
+          return
+        }
+
+        // migrate from old typo key if present
+        if (old === 'indigo' || old === 'emerald' || old === 'amber') {
+          setPaletteKey(old as any)
+          AsyncStorage.setItem(PREF_PALETTE, old).catch(console.error)
+          AsyncStorage.removeItem(OLD_PREF_PALETTE).catch(console.error)
+        }
+      })
+      .catch(console.error)
+  }, [])
+
+  // DEBUG: log keys and palette value once on mount
+  useEffect(() => {
+    (async () => {
+      const keys = await AsyncStorage.getAllKeys()
+      const entries = await AsyncStorage.multiGet(['ui.palette', 'ui.plaette', 'ui.sortMode', 'ui.showArchived', 'ui.filterText'])
+      console.log('AsyncStorage keys:', keys)
+      console.log('AsyncStorage entries:', Object.fromEntries(entries))
+    })().catch(console.error)
+  }, [])
+
+
+
+ 
+
+
 
 
 
@@ -268,27 +298,29 @@ async function addNew() {
         <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', gap: 8 }}>
           <Text style={{ color: theme.text, opacity: 0.7, marginRight: 6 }}>Sort:</Text>
 
-          <Pressable
+         <Pressable
             onPress={() => setSortMode('name')}
             style={{
               paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: sortMode === 'name' ? theme.primary : theme.border,
+              borderWidth: 1, borderColor: sortMode === 'name' ? accent : theme.border,
               backgroundColor: sortMode === 'name' ? '#1d263b' : 'transparent'
             }}
           >
-            <Text style={{ color: sortMode === 'name' ? theme.primary : theme.text }}>Name</Text>
+            <Text style={{ color: sortMode === 'name' ? accent : theme.text }}>Name</Text>
           </Pressable>
 
-          <Pressable
+
+         <Pressable
             onPress={() => setSortMode('due')}
             style={{
               paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: sortMode === 'due' ? theme.primary : theme.border,
+              borderWidth: 1, borderColor: sortMode === 'due' ? accent : theme.border,
               backgroundColor: sortMode === 'due' ? '#1d263b' : 'transparent'
             }}
           >
-            <Text style={{ color: sortMode === 'due' ? theme.primary : theme.text }}>Due soon</Text>
+            <Text style={{ color: sortMode === 'due' ? accent : theme.text }}>Due soon</Text>
           </Pressable>
+
 
           <Pressable
             onPress={() => setShowArchived(s => !s)}
@@ -381,7 +413,10 @@ async function addNew() {
       )}
 
 
-     
+     {/* palette accent footer */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, backgroundColor: accent }} />
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 6, height: 1, backgroundColor: '#ffffff22' }} />
+
 
       <FAB onPress={() => {
           // reset fields, then show modal
@@ -423,7 +458,7 @@ async function addNew() {
                   onPress={() => setAddEmoji(e)}
                   style={{
                     borderWidth: 1,
-                    borderColor: addEmoji === e ? theme.primary : theme.border,
+                    borderColor: addEmoji === e ? accent : theme.border,
                     backgroundColor: addEmoji === e ? '#1d263b' : theme.bg,
                     borderRadius: 8,
                     paddingVertical: 6,
@@ -509,7 +544,14 @@ async function addNew() {
               {Object.values(PALETTES).map(p => (
                 <Pressable
                   key={p.key}
-                  onPress={() => { setPaletteKey(p.key as PaletteKey); setStyleOpen(false); showToast(`${p.name} applied`) }}
+                 onPress={async () => {
+                    const k = p.key as PaletteKey
+                    setPaletteKey(k)
+                    try { await AsyncStorage.setItem(PREF_PALETTE, k) } catch (e) { console.error(e) }
+                    setStyleOpen(false)
+                    showToast(`${p.name} applied`)
+                  }}
+
                   style={{
                     borderWidth: 1,
                     borderColor: (paletteKey === p.key) ? p.accent : theme.border,
@@ -579,7 +621,7 @@ async function addNew() {
                   onPress={() => setEditEmoji(e)}
                   style={{
                     borderWidth: 1,
-                    borderColor: editEmoji === e ? theme.primary : theme.border,
+                    borderColor: editEmoji === e ? accent : theme.border,
                     backgroundColor: editEmoji === e ? '#1d263b' : theme.bg,
                     borderRadius: 8,
                     paddingVertical: 6,
