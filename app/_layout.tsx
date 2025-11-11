@@ -30,6 +30,7 @@ export default function RootLayout() {
     theme.accent = a;
     try {
       await AsyncStorage.setItem(STORAGE_KEY, a);
+      console.log("Accent Saved", a);
     } catch {}
   };
 
@@ -38,10 +39,18 @@ export default function RootLayout() {
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY);
+        
+        const keys = await AsyncStorage.getAllKeys();
+        console.log('All AsyncStorage keys:', keys);
+
+        const entries = await AsyncStorage.multiGet(keys);
+        console.log('All AsyncStorage entries:', Object.fromEntries(entries));
+
         const next = (saved ?? 'indigo') as Accent;
         _setAccent(next);
         theme.accent = next;
         if (!saved) await AsyncStorage.setItem(STORAGE_KEY, next);
+        console.log("Accent loaded from storage", saved);
       } finally {
         setReady(true);
       }
