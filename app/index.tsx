@@ -1,5 +1,6 @@
+// app/index.tsx
 import { useEffect, useState, useRef } from 'react'
-import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
+import { View, FlatList, Modal, Text, TextInput, Pressable } from 'react-native'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
 import { CounterCard } from '../components/CounterCard'
@@ -18,6 +19,7 @@ export default function Home() {
   const [editEmoji, setEditEmoji] = useState('')
   const [editTarget, setEditTarget] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [completeItem, setCompleteItem] = useState<Counter | null>(null)
 
   // ADD MODAL state
   const [adding, setAdding] = useState(false)
@@ -42,6 +44,10 @@ export default function Home() {
   const [toast, setToast] = useState<string | null>(null)
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Due Soon Feature
+  const SOON_THRESHOLD_DAYS = 3
+  type ItemStatus = "due" | "soon" | null
+
   ////////////////////////////////////////////// functions //////////////////////////////////////
 
   // Start of Edit Functions
@@ -59,7 +65,7 @@ export default function Home() {
     toastTimerRef.current = setTimeout(() => setToast(null), 1600)
   }
 
-  // Quick feedback after local message
+  // Quick cleanup for toast on unmount
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -136,7 +142,18 @@ export default function Home() {
   const data = items
     .filter(m => (showArchived ? true : !m.archived))
     .filter(m => !normalizedFilter || m.title.toLowerCase().includes(normalizedFilter))
-    .map(m => ({ ...m, days: daysSince(m.lastAt) }))
+    .map(item => {
+      const days = daysSince(item.lastAt)
+      let status: ItemStatus = null
+
+      if (item.targetDays != null) {
+        const delta = item.targetDays - days
+        if (delta <= 0) status = 'due'
+        else if (delta <= SOON_THRESHOLD_DAYS) status = 'soon'
+      }
+
+      return { ...item, days, status }
+    })
     .sort((a, b) => {
       if (sortMode === 'name') return a.title.localeCompare(b.title)
       const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
@@ -176,6 +193,19 @@ export default function Home() {
       })
       .catch(console.error)
   }, [])
+
+  // --- Minimal, working "Mark as Complete" ---
+  async function markComplete() {
+    if (!completeItem) return
+    try {
+      await countersRepo.reset(completeItem.id)
+      setCompleteItem(null)
+      reload()
+      showToast('Marked complete')
+    } catch (e) {
+      console.error('Failed to mark complete', e)
+    }
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -277,25 +307,9 @@ export default function Home() {
               emoji={item.emoji ?? undefined}
               days={item.days}
               targetDays={item.targetDays ?? undefined}
-              // Adds Alert to show Yes/No dialog before resetting
-              onPress={() => {
-                Alert.alert(
-                  'Reset days?',
-                  `This will set “${item.title}” to 0 days.`,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                      text: 'Reset',
-                      style: 'destructive',
-                      onPress: async () => {
-                        await countersRepo.reset(item.id)
-                        reload()
-                        showToast('Reset!')
-                      }
-                    }
-                  ]
-                )
-              }}
+              status={item.status}
+              // Tap → open confirm modal
+              onPress={() => setCompleteItem(item)}
               onLongPress={() => startEdit(item)}
             />
           )}
@@ -413,6 +427,62 @@ export default function Home() {
                 style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
               >
                 <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Close</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MARK COMPLETE MODAL */}
+      <Modal
+        visible={!!completeItem}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCompleteItem(null)}
+      >
+        <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <View style={{ width:'100%', maxWidth:440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius:12, padding:16 }}>
+            <Text style={{ color: theme.text, fontSize:18, fontWeight:'700', marginBottom:8 }}>
+              Mark as Complete?
+            </Text>
+            <Text style={{ color:'#9aa0a6', marginBottom:16 }}>
+              {completeItem ? `This will set “${completeItem.title}” to 0 days.` : ''}
+            </Text>
+
+            <View style={{ flexDirection:'row', flexWrap:'wrap', width:'100%', gap:10, justifyContent:'flex-end' }}>
+              <Pressable
+                onPress={() => setCompleteItem(null)}
+                style={{
+                  backgroundColor:'#1a1f27',
+                  borderColor: theme.border,
+                  borderWidth:1,
+                  borderRadius:8,
+                  paddingVertical:10,
+                  paddingHorizontal:12,
+                  flexGrow:1,
+                  minWidth:'48%',
+                  alignItems:'center'
+                }}
+              >
+                <Text style={{ color:'#c8cbd0', fontWeight:'700' }}>Cancel</Text>
+              </Pressable>
+
+              {/* Green confirm */}
+              <Pressable
+                onPress={markComplete}
+                style={{
+                  backgroundColor:'#233224',     // deep green bg
+                  borderColor:'#2d5430',         // green border
+                  borderWidth:1,
+                  borderRadius:8,
+                  paddingVertical:10,
+                  paddingHorizontal:12,
+                  flexGrow:1,
+                  minWidth:'48%',
+                  alignItems:'center'
+                }}
+              >
+                <Text style={{ color:'#9DFFB0', fontWeight:'800' }}>Mark as Complete</Text>
               </Pressable>
             </View>
           </View>
