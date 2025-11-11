@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react'
 import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
 import { Header } from '../components/Header'
@@ -10,15 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // NEW: the storage repo (AsyncStorage-backed)
 import { countersRepo, type Counter } from '../data'
-
-//  Palettes (small and simple)
-const PALETTES = {
-  indigo: { key: 'indigo', name: 'Indigo', accent: '#7C9CFF' },
-  emerald: { key: 'emerald', name: 'Emerald', accent: '#46D19E' },
-  amber: { key: 'amber', name: 'Amber', accent: '#F0C06A' },
-} as const
-type PaletteKey = keyof typeof PALETTES
-
 
 export default function Home() {
   // holds persisted counters
@@ -35,57 +25,40 @@ export default function Home() {
   const [addEmoji, setAddEmoji] = useState('')
   const [addTarget, setAddTarget] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
-  const [styleOpen, setStyleOpen] = useState(false)
 
   const COMMON_EMOJIS = ['💇','🛢️','🚗','🍷','🥗','🏋️','📚','🧹','🧼','🛒','💊','🧑‍🍳','🪥','🧵','🧰','📦','🛏️','🔋','🔧','📞','💡']
 
+  // State to sort the mode
+  const [sortMode, setSortMode] = useState<'name' | 'due'>('name')
 
-
-    // State to sort the mode
-  const [sortMode, setSortMode] =useState<'name' | 'due'>('name')
-
-  const SORT_KEY = 'ui.sortMode' // stable key for this screen
-  const PREF_PALETTE = 'ui.palette'
-  const OLD_PREF_PALETTE = 'ui.plaette' // migrate from old typo
-
-
+  const SORT_KEY = 'ui.sortMode'            // stable key for this screen
   const PREF_SHOW_ARCHIVED = 'ui.showArchived'
   const PREF_FILTER = 'ui.filterText'
-  
-
 
   // Holds Current search string
   const [filterText, setFilterText] = useState('')
 
-  //Toast Feedback after actions
- const [toast, setToast] = useState<string | null>(null)
- const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Toast Feedback after actions
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Holds Color theme Palletes 
-  const [paletteKey, setPaletteKey] = useState<'indigo' | 'emerald' | 'amber'>('indigo')
-  const accent = PALETTES[paletteKey].accent
+  ////////////////////////////////////////////// functions //////////////////////////////////////
 
-
-
- 
-
-
-////////////////////////////////////////////// functions //////////////////////////////////////
-  
-// Start of Edit Functions 
+  // Start of Edit Functions
   function startEdit(item: Counter) {
-  setEditing(item)
-  setEditTitle(item.title)
-  setEditEmoji(item.emoji ?? '')
-  setEditTarget(item.targetDays != null ? String(item.targetDays) : '')
-}
+    setEditing(item)
+    setEditTitle(item.title)
+    setEditEmoji(item.emoji ?? '')
+    setEditTarget(item.targetDays != null ? String(item.targetDays) : '')
+  }
 
-// Toast function
- const showToast = (msg: string) => {
-  setToast(msg)
-  if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-  toastTimerRef.current = setTimeout(() => setToast(null), 1600)
-}
+  // Toast function
+  const showToast = (msg: string) => {
+    setToast(msg)
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = setTimeout(() => setToast(null), 1600)
+  }
+
   // Quick feedback after local message
   useEffect(() => {
     return () => {
@@ -93,66 +66,59 @@ export default function Home() {
     }
   }, [])
 
-async function saveEdit() {
-  if (!editing) return
-  await countersRepo.update(editing.id, {
-    title: editTitle.trim(),
-    emoji: editEmoji.trim() || null,
-    targetDays: editTarget ? parseInt(editTarget, 10) : null,
-  })
-  setEditing(null)
-  reload()
-}
+  async function saveEdit() {
+    if (!editing) return
+    await countersRepo.update(editing.id, {
+      title: editTitle.trim(),
+      emoji: editEmoji.trim() || null,
+      targetDays: editTarget ? parseInt(editTarget, 10) : null,
+    })
+    setEditing(null)
+    reload()
+  }
 
-async function deleteItem() {
-  if (!editing) return
-  await countersRepo.remove(editing.id)
-  setEditing(null)
-  reload()
-}
+  async function deleteItem() {
+    if (!editing) return
+    await countersRepo.remove(editing.id)
+    setEditing(null)
+    reload()
+  }
 
-// create a new counter
-async function addNew() {
-  if (!addTitle.trim()) return
-  await countersRepo.add({
-    title: addTitle.trim(),
-    emoji: addEmoji.trim() ? addEmoji.trim() : null,
-    targetDays: addTarget ? parseInt(addTarget, 10) : null,
-    lastAt: Date.now(), // start at 0 days
-  })
-  setAdding(false)
-  setAddTitle('')
-  setAddEmoji('')
-  setAddTarget('')
-  reload()
-  showToast('Added')
-}
+  // create a new counter
+  async function addNew() {
+    if (!addTitle.trim()) return
+    await countersRepo.add({
+      title: addTitle.trim(),
+      emoji: addEmoji.trim() ? addEmoji.trim() : null,
+      targetDays: addTarget ? parseInt(addTarget, 10) : null,
+      lastAt: Date.now(), // start at 0 days
+    })
+    setAdding(false)
+    setAddTitle('')
+    setAddEmoji('')
+    setAddTarget('')
+    reload()
+    showToast('Added')
+  }
 
-// end of helpers
-
-
-
-// Calls expisting repo .add() to create a new counter from currently edited one, the refreshes the list and shows toast
+  // Calls existing repo .add() to create a new counter from currently edited one, then refreshes the list and shows toast
   async function duplicateSelected() {
-  if (!editing) return
-  // copy fields; start fresh at 0 days (new lastAt = now)
-  await countersRepo.add({
-    title: editing.title + ' (copy)',
-    emoji: editing.emoji ?? null,
-    targetDays: editing.targetDays ?? null,
-    lastAt: Date.now(),
-  })
-  setEditing(null)
-  reload()
-  showToast('Duplicated')
-}
-
+    if (!editing) return
+    await countersRepo.add({
+      title: editing.title + ' (copy)',
+      emoji: editing.emoji ?? null,
+      targetDays: editing.targetDays ?? null,
+      lastAt: Date.now(),
+    })
+    setEditing(null)
+    reload()
+    showToast('Duplicated')
+  }
 
   // refresh helper
   const reload = () => {
     countersRepo.all().then(setItems).catch(console.error)
   }
- 
 
   // seed on first run, then load
   useEffect(() => {
@@ -164,26 +130,20 @@ async function addNew() {
       .finally(reload)
   }, [])
 
-  // Replace your current data derivation with this version that filters by title (case-insensitive) before sorting
+  // data derivation (filter then sort)
+  const normalizedFilter = filterText.trim().toLowerCase()
 
-   const normalizedFilter = filterText.trim().toLowerCase()
+  const data = items
+    .filter(m => (showArchived ? true : !m.archived))
+    .filter(m => !normalizedFilter || m.title.toLowerCase().includes(normalizedFilter))
+    .map(m => ({ ...m, days: daysSince(m.lastAt) }))
+    .sort((a, b) => {
+      if (sortMode === 'name') return a.title.localeCompare(b.title)
+      const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
+      const bDelta = b.targetDays != null ? b.targetDays - b.days : Infinity
+      return aDelta - bDelta
+    })
 
-    const data = items
-      .filter(m => (showArchived ? true : !m.archived))  // ← hide archived unless toggled
-      .filter(m => !normalizedFilter || m.title.toLowerCase().includes(normalizedFilter))
-      .map(m => ({ ...m, days: daysSince(m.lastAt) }))
-      .sort((a, b) => {
-        if (sortMode === 'name') return a.title.localeCompare(b.title)
-        const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
-        const bDelta = b.targetDays != null ? b.targetDays - b.days : Infinity
-        return aDelta - bDelta
-      })
-
-
-
-
-
-  
   // Reads previously saved sort mode on first render
   useEffect(() => {
     AsyncStorage.getItem(SORT_KEY).then((v) => {
@@ -196,60 +156,12 @@ async function addNew() {
     AsyncStorage.setItem(SORT_KEY, sortMode).catch(console.error)
   }, [sortMode])
 
-  // Async saves when they change prefs
+  // Save prefs
   useEffect(() => {
     AsyncStorage.setItem(PREF_SHOW_ARCHIVED, showArchived ? '1' : '0').catch(console.error)
   }, [showArchived])
 
- 
-
-  // save palette when it changes
-  useEffect(() => {
-    AsyncStorage.setItem(PREF_PALETTE, paletteKey).catch(console.error)
-  }, [paletteKey])
-
-  // load palette on mount (with migration)
-  useEffect(() => {
-    AsyncStorage.multiGet([PREF_PALETTE, OLD_PREF_PALETTE])
-      .then(entries => {
-        const map = Object.fromEntries(entries)
-        const v = map[PREF_PALETTE]
-        const old = map[OLD_PREF_PALETTE]
-
-        if (v === 'indigo' || v === 'emerald' || v === 'amber') {
-          setPaletteKey(v as any)
-          return
-        }
-
-        // migrate from old typo key if present
-        if (old === 'indigo' || old === 'emerald' || old === 'amber') {
-          setPaletteKey(old as any)
-          AsyncStorage.setItem(PREF_PALETTE, old).catch(console.error)
-          AsyncStorage.removeItem(OLD_PREF_PALETTE).catch(console.error)
-        }
-      })
-      .catch(console.error)
-  }, [])
-
-  // DEBUG: log keys and palette value once on mount
-  useEffect(() => {
-    (async () => {
-      const keys = await AsyncStorage.getAllKeys()
-      const entries = await AsyncStorage.multiGet(['ui.palette', 'ui.plaette', 'ui.sortMode', 'ui.showArchived', 'ui.filterText'])
-      console.log('AsyncStorage keys:', keys)
-      console.log('AsyncStorage entries:', Object.fromEntries(entries))
-    })().catch(console.error)
-  }, [])
-
-
-
- 
-
-
-
-
-
-  // keeps existing sort loader
+  // Load prefs
   useEffect(() => {
     AsyncStorage
       .multiGet([PREF_SHOW_ARCHIVED, PREF_FILTER])
@@ -264,108 +176,86 @@ async function addNew() {
       })
       .catch(console.error)
   }, [])
-  
-
-
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
       <Header />
 
-        {/* palette accent under header */}
-        <View style={{ height: 6, backgroundColor: accent }} />
-        <View style={{ height: 1, backgroundColor: '#ffffff22' }} />
+      {/* accent under header (fixed) */}
+      <View style={{ height: 6, backgroundColor: theme.primary }} />
+      <View style={{ height: 1, backgroundColor: '#ffffff22' }} />
 
-        <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6 }}>
-          <TextInput
-            value={filterText}
-            onChangeText={setFilterText}
-            placeholder="Search counters…"
-            placeholderTextColor="#666"
-            style={{
-              color: theme.text,
-              backgroundColor: theme.card,
-              borderColor: theme.border,
-              borderWidth: 1,
-              borderRadius: 10,
-              paddingVertical: 10,
-              paddingHorizontal: 12,
-            }}
-          />
-        </View>
+      <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6 }}>
+        <TextInput
+          value={filterText}
+          onChangeText={setFilterText}
+          placeholder="Search counters…"
+          placeholderTextColor="#666"
+          style={{
+            color: theme.text,
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+            borderWidth: 1,
+            borderRadius: 10,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+          }}
+        />
+      </View>
 
+      <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', gap: 8 }}>
+        <Text style={{ color: theme.text, opacity: 0.7, marginRight: 6 }}>Sort:</Text>
 
-        <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', gap: 8 }}>
-          <Text style={{ color: theme.text, opacity: 0.7, marginRight: 6 }}>Sort:</Text>
+        <Pressable
+          onPress={() => setSortMode('name')}
+          style={{
+            paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+            borderWidth: 1, borderColor: sortMode === 'name' ? theme.primary : theme.border,
+            backgroundColor: sortMode === 'name' ? '#1d263b' : 'transparent'
+          }}
+        >
+          <Text style={{ color: sortMode === 'name' ? theme.primary : theme.text }}>Name</Text>
+        </Pressable>
 
-         <Pressable
-            onPress={() => setSortMode('name')}
-            style={{
-              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: sortMode === 'name' ? accent : theme.border,
-              backgroundColor: sortMode === 'name' ? '#1d263b' : 'transparent'
-            }}
-          >
-            <Text style={{ color: sortMode === 'name' ? accent : theme.text }}>Name</Text>
-          </Pressable>
+        <Pressable
+          onPress={() => setSortMode('due')}
+          style={{
+            paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+            borderWidth: 1, borderColor: sortMode === 'due' ? theme.primary : theme.border,
+            backgroundColor: sortMode === 'due' ? '#1d263b' : 'transparent'
+          }}
+        >
+          <Text style={{ color: sortMode === 'due' ? theme.primary : theme.text }}>Due soon</Text>
+        </Pressable>
 
+        <Pressable
+          onPress={() => setShowArchived(s => !s)}
+          style={{
+            marginLeft: 8,
+            paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+            borderWidth: 1, borderColor: showArchived ? theme.primary : theme.border,
+            backgroundColor: showArchived ? '#1d263b' : 'transparent'
+          }}
+        >
+          <Text style={{ color: showArchived ? theme.primary : theme.text }}>
+            {showArchived ? 'Showing archived' : 'Hide archived'}
+          </Text>
+        </Pressable>
 
-         <Pressable
-            onPress={() => setSortMode('due')}
-            style={{
-              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: sortMode === 'due' ? accent : theme.border,
-              backgroundColor: sortMode === 'due' ? '#1d263b' : 'transparent'
-            }}
-          >
-            <Text style={{ color: sortMode === 'due' ? accent : theme.text }}>Due soon</Text>
-          </Pressable>
+        <Pressable
+          onPress={() => setExportOpen(true)}
+          style={{
+            marginLeft: 8,
+            paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
+            borderWidth: 1, borderColor: theme.border,
+            backgroundColor: 'transparent'
+          }}
+        >
+          <Text style={{ color: theme.text }}>Export</Text>
+        </Pressable>
+      </View>
 
-
-          <Pressable
-            onPress={() => setShowArchived(s => !s)}
-            style={{
-              marginLeft: 8,
-              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: showArchived ? accent : theme.border,
-              backgroundColor: showArchived ? '#1d263b' : 'transparent'
-            }}
-          >
-            <Text style={{ color: showArchived ? accent : theme.text }}>
-              {showArchived ? 'Showing archived' : 'Hide archived'}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setExportOpen(true)}
-            style={{
-              marginLeft: 8,
-              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: theme.border,
-              backgroundColor: 'transparent'
-            }}
-          >
-            <Text style={{ color: theme.text }}>Export</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setStyleOpen(true)}
-            style={{
-              marginLeft: 8,
-              paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999,
-              borderWidth: 1, borderColor: theme.border,
-              backgroundColor: 'transparent'
-            }}
-          >
-            <Text style={{ color: theme.text }}>Style</Text>
-          </Pressable>
-
-
-
-        </View>
-
-
-              {data.length === 0 ? (
+      {data.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.pad }}>
           <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
             No counters yet
@@ -387,8 +277,8 @@ async function addNew() {
               emoji={item.emoji ?? undefined}
               days={item.days}
               targetDays={item.targetDays ?? undefined}
-              // Adds Alert to show Yes/No dialog before resseting
-              onPress={() => { 
+              // Adds Alert to show Yes/No dialog before resetting
+              onPress={() => {
                 Alert.alert(
                   'Reset days?',
                   `This will set “${item.title}” to 0 days.`,
@@ -400,7 +290,7 @@ async function addNew() {
                       onPress: async () => {
                         await countersRepo.reset(item.id)
                         reload()
-                        showToast('Reset!') // Toast <--
+                        showToast('Reset!')
                       }
                     }
                   ]
@@ -412,19 +302,16 @@ async function addNew() {
         />
       )}
 
-
-     {/* palette accent footer */}
-      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, backgroundColor: accent }} />
+      {/* accent footer (fixed) */}
+      <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, backgroundColor: theme.primary }} />
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 6, height: 1, backgroundColor: '#ffffff22' }} />
 
-
       <FAB onPress={() => {
-          // reset fields, then show modal
-          setAddTitle('')
-          setAddEmoji('')
-          setAddTarget('')
-          setAdding(true)
-        }} />
+        setAddTitle('')
+        setAddEmoji('')
+        setAddTarget('')
+        setAdding(true)
+      }} />
 
       {/* ADD MODAL */}
       <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
@@ -458,7 +345,7 @@ async function addNew() {
                   onPress={() => setAddEmoji(e)}
                   style={{
                     borderWidth: 1,
-                    borderColor: addEmoji === e ? accent : theme.border,
+                    borderColor: addEmoji === e ? theme.primary : theme.border,
                     backgroundColor: addEmoji === e ? '#1d263b' : theme.bg,
                     borderRadius: 8,
                     paddingVertical: 6,
@@ -470,7 +357,6 @@ async function addNew() {
               ))}
             </View>
 
-
             <Text style={{ color: theme.text, marginBottom: 6 }}>Target days</Text>
             <TextInput
               value={addTarget}
@@ -481,7 +367,7 @@ async function addNew() {
               style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 16 }}
             />
 
-            {/* Responsive button row (2×2 on phones) */}
+            {/* Buttons */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end' }}>
               <Pressable
                 onPress={() => setAdding(false)}
@@ -493,7 +379,7 @@ async function addNew() {
               <Pressable
                 disabled={!addTitle.trim()}
                 onPress={addNew}
-                style={{ opacity: addTitle.trim() ? 1 : 0.5, backgroundColor: accent, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
+                style={{ opacity: addTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
               >
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
               </Pressable>
@@ -521,7 +407,6 @@ async function addNew() {
               </Text>
             </View>
 
-            {/* Buttons: Close only (no deps) */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
               <Pressable
                 onPress={() => setExportOpen(false)}
@@ -534,62 +419,7 @@ async function addNew() {
         </View>
       </Modal>
 
-      {/* STYLE / PALETTE MODAL */}
-      <Modal visible={styleOpen} transparent animationType="fade" onRequestClose={() => setStyleOpen(false)}>
-        <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
-          <View style={{ width: '100%', maxWidth: 460, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Choose style</Text>
-
-            <View style={{ gap: 10 }}>
-              {Object.values(PALETTES).map(p => (
-                <Pressable
-                  key={p.key}
-                 onPress={async () => {
-                    const k = p.key as PaletteKey
-                    setPaletteKey(k)
-                    try { await AsyncStorage.setItem(PREF_PALETTE, k) } catch (e) { console.error(e) }
-                    setStyleOpen(false)
-                    showToast(`${p.name} applied`)
-                  }}
-
-                  style={{
-                    borderWidth: 1,
-                    borderColor: (paletteKey === p.key) ? p.accent : theme.border,
-                    backgroundColor: (paletteKey === p.key) ? '#10151e' : theme.bg,
-                    borderRadius: 10,
-                    padding: 12,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View style={{ width: 18, height: 18, borderRadius: 999, backgroundColor: p.accent }} />
-                    <Text style={{ color: theme.text, fontWeight: '700' }}>{p.name}</Text>
-                  </View>
-                  {paletteKey === p.key ? (
-                    <Text style={{ color: p.accent, fontWeight: '800' }}>✓</Text>
-                  ) : (
-                    <Text style={{ color: '#9aa0a6' }}>Select</Text>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
-              <Pressable
-                onPress={() => setStyleOpen(false)}
-                style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
-              >
-                <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Close</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-
-        {/* EDIT MODAL */}
+      {/* EDIT MODAL */}
       <Modal visible={!!editing} transparent animationType="fade" onRequestClose={() => setEditing(null)}>
         <View style={{ flex:1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems:'center', justifyContent:'center', padding: 20 }}>
           <View style={{ width: '100%', maxWidth: 440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
@@ -621,7 +451,7 @@ async function addNew() {
                   onPress={() => setEditEmoji(e)}
                   style={{
                     borderWidth: 1,
-                    borderColor: editEmoji === e ? accent : theme.border,
+                    borderColor: editEmoji === e ? theme.primary : theme.border,
                     backgroundColor: editEmoji === e ? '#1d263b' : theme.bg,
                     borderRadius: 8,
                     paddingVertical: 6,
@@ -632,7 +462,6 @@ async function addNew() {
                 </Pressable>
               ))}
             </View>
-
 
             <Text style={{ color: theme.text, marginBottom: 6 }}>Target days</Text>
             <TextInput
@@ -645,17 +474,11 @@ async function addNew() {
             />
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end' }}>
-
-              
               <Pressable onPress={() => setEditing(null)} style={{ backgroundColor: '#1a1f27', borderColor: theme.border, borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}>
-
-
                 <Text style={{ color: '#c8cbd0', fontWeight: '700' }}>Cancel</Text>
-
               </Pressable>
 
               <Pressable onPress={deleteItem} style={{ backgroundColor: '#372527', borderColor: '#4E1F25', borderWidth: 1, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}>
-
                 <Text style={{ color: '#FF6B6B', fontWeight: '700' }}>Delete</Text>
               </Pressable>
 
@@ -683,37 +506,33 @@ async function addNew() {
                   minWidth: '48%',
                   alignItems: 'center',
                 }}
-
               >
                 <Text style={{ color: editing?.archived ? '#9DFFB0' : '#F3E38A', fontWeight: '700' }}>
                   {editing?.archived ? 'Unarchive' : 'Archive'}
                 </Text>
               </Pressable>
 
-
               <Pressable
-                  onPress={duplicateSelected}
-                  style={{
-                    backgroundColor: '#1f2a38',
-                    borderColor: '#293545',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    flexGrow: 1,
-                    minWidth: '48%',
-                    alignItems: 'center',
-                  }}
-                  >
-                    <Text style={{ color: '#cfe1ff', fontWeight: '700' }}>Duplicate</Text>
+                onPress={duplicateSelected}
+                style={{
+                  backgroundColor: '#1f2a38',
+                  borderColor: '#293545',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  flexGrow: 1,
+                  minWidth: '48%',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#cfe1ff', fontWeight: '700' }}>Duplicate</Text>
               </Pressable>
-
 
               <Pressable
                 disabled={!editTitle.trim()}
                 onPress={saveEdit}
-                  style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: accent, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
-
+                style={{ opacity: editTitle.trim() ? 1 : 0.5, backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12, flexGrow: 1, minWidth: '48%', alignItems: 'center' }}
               >
                 <Text style={{ color: '#fff', fontWeight: '700' }}>Save</Text>
               </Pressable>
@@ -724,4 +543,3 @@ async function addNew() {
     </View>
   )
 }
-
