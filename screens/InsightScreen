@@ -27,7 +27,7 @@ async function loadCounters(): Promise<Counter[]> {
   return [];
 }
 
-export default function InsightScreen() {
+export default function InsightsScreen() {
   const [counters, setCounters] = useState<Counter[] | null>(null);
 
   useEffect(() => {
