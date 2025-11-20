@@ -1,0 +1,54 @@
+import { useMemo } from "react";
+
+export interface InsightSegment {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export interface WeeklyInsights {
+  total: number;
+  activeDays: number;
+  topCounter: string;
+  lastWeekTotal: number;
+  segments: InsightSegment[];
+  change: number;
+  changePercent: number;
+  isUp: boolean;
+}
+
+// 🔴 IMPORTANT: name matches exactly what we import in the screen:
+// useInsightMockData (no extra "s")
+export function useInsightMockData(): WeeklyInsights {
+  // For now this is all mocked; later this will
+  // read from real counters & dates.
+  const total = 128;
+  const activeDays = 5;
+  const topCounter = "Deep Work";
+  const lastWeekTotal = 94;
+
+  const segments: InsightSegment[] = [
+    { label: "Focus / Deep Work", value: 52, color: "#4f46e5" }, // indigo
+    { label: "Habits & Routines", value: 36, color: "#10b981" }, // emerald
+    { label: "Health & Wellness", value: 24, color: "#f59e0b" }, // amber
+    { label: "Other", value: 16, color: "#9ca3af" },             // gray
+  ];
+
+  return useMemo(() => {
+    const change = total - lastWeekTotal;
+    const changePercent =
+      lastWeekTotal > 0 ? Math.round((change / lastWeekTotal) * 100) : 0;
+    const isUp = change >= 0;
+
+    return {
+      total,
+      activeDays,
+      topCounter,
+      lastWeekTotal,
+      segments,
+      change,
+      changePercent,
+      isUp,
+    };
+  }, [total, activeDays, topCounter, lastWeekTotal]);
+}

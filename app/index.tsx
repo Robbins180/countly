@@ -1,5 +1,6 @@
 // app/index.tsx
 import { useEffect, useState, useRef } from 'react'
+import { Link } from "expo-router";
 import { View, FlatList, Modal, Text, TextInput, Pressable } from 'react-native'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
@@ -9,7 +10,8 @@ import { MS_DAY, daysSince } from '../utils/date'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // NEW: the storage repo (AsyncStorage-backed)
-import { countersRepo, type Counter } from '../data'
+import { countersRepo, type Counter, type CounterCategoryKey } from '../data'
+
 
 export default function Home() {
   // holds persisted counters
@@ -29,6 +31,15 @@ export default function Home() {
   const [exportOpen, setExportOpen] = useState(false)
 
   const COMMON_EMOJIS = ['💇','🛢️','🚗','🍷','🥗','🏋️','📚','🧹','🧼','🛒','💊','🧑‍🍳','🪥','🧵','🧰','📦','🛏️','🔋','🔧','📞','💡']
+
+    const CATEGORIES: { key: CounterCategoryKey; label: string; emoji: string }[] = [
+    { key: "work", label: "Work", emoji: "💼" },
+    { key: "health", label: "Health", emoji: "💪" },
+    { key: "home", label: "Home", emoji: "🏠" },
+    { key: "personal", label: "Personal", emoji: "✨" },
+    { key: "other", label: "Other", emoji: "📦" },
+  ];
+
 
   // State to sort the mode
   const [sortMode, setSortMode] = useState<'name' | 'due'>('name')
@@ -315,6 +326,28 @@ export default function Home() {
           )}
         />
       )}
+
+        
+      {/* Entry point to Insights */}
+      <Link
+        href="/insights"
+        style={{
+          alignSelf: 'center',
+          marginBottom: 16,
+          paddingVertical: 8,
+          paddingHorizontal: 16,
+          borderRadius: 999,
+          borderWidth: 1,
+          borderColor: theme.primary,
+          backgroundColor: 'transparent',
+        }}
+      >
+        <Text style={{ color: theme.primary, fontWeight: '600' }}>
+          View Insights
+        </Text>
+      </Link>
+
+
 
       {/* accent footer (fixed) */}
       <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, backgroundColor: theme.primary }} />
@@ -610,6 +643,50 @@ export default function Home() {
           </View>
         </View>
       </Modal>
+
+                {/* TOAST */}
+          {toast && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 72,
+                alignItems: 'center',
+              }}
+            >
+              <View
+                style={{
+                  maxWidth: 320,
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                  backgroundColor: '#111827',
+                  borderWidth: 1,
+                  borderColor: '#4b5563',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.35,
+                  shadowRadius: 12,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    color: '#e5e7eb',
+                    fontSize: 13,
+                    fontWeight: '600',
+                    textAlign: 'center',
+                  }}
+                >
+                  {toast}
+                </Text>
+              </View>
+            </View>
+          )}
+
     </View>
+    
   )
 }
