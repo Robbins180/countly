@@ -29,6 +29,9 @@ export default function Home() {
   const [addEmoji, setAddEmoji] = useState('')
   const [addTarget, setAddTarget] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
+  const [addCategory, setAddCategory] = useState<CounterCategoryKey>('other')
+  const [editCategory, setEditCategory] = useState<CounterCategoryKey>('other')
+
 
   const COMMON_EMOJIS = ['💇','🛢️','🚗','🍷','🥗','🏋️','📚','🧹','🧼','🛒','💊','🧑‍🍳','🪥','🧵','🧰','📦','🛏️','🔋','🔧','📞','💡']
 
@@ -67,6 +70,7 @@ export default function Home() {
     setEditTitle(item.title)
     setEditEmoji(item.emoji ?? '')
     setEditTarget(item.targetDays != null ? String(item.targetDays) : '')
+    setEditCategory((item.category as CounterCategoryKey) ?? 'other')
   }
 
   // Toast function
@@ -89,6 +93,7 @@ export default function Home() {
       title: editTitle.trim(),
       emoji: editEmoji.trim() || null,
       targetDays: editTarget ? parseInt(editTarget, 10) : null,
+      category: editCategory,
     })
     setEditing(null)
     reload()
@@ -109,13 +114,14 @@ export default function Home() {
       emoji: addEmoji.trim() ? addEmoji.trim() : null,
       targetDays: addTarget ? parseInt(addTarget, 10) : null,
       lastAt: Date.now(), // start at 0 days
+      category: addCategory,
     })
     setAdding(false)
     setAddTitle('')
     setAddEmoji('')
     setAddTarget('')
-    reload()
-    showToast('Added')
+    setAddCategory('other')
+
   }
 
   // Calls existing repo .add() to create a new counter from currently edited one, then refreshes the list and shows toast
@@ -312,18 +318,28 @@ export default function Home() {
           numColumns={2}
           contentContainerStyle={{ paddingHorizontal: theme.pad, paddingBottom: 96, gap: 12 }}
           columnWrapperStyle={{ gap: 12 }}
-          renderItem={({ item }) => (
+          
+          renderItem={({ item }) => {
+            const categoryMeta = CATEGORIES.find(
+              (c) => c.key === (item.category as CounterCategoryKey)
+            )
+
+            return (
             <CounterCard
               title={item.title}
               emoji={item.emoji ?? undefined}
               days={item.days}
               targetDays={item.targetDays ?? undefined}
               status={item.status}
+               // NEW: category chip
+              categoryLabel={categoryMeta?.label}
+              categoryEmoji={categoryMeta?.emoji}
               // Tap → open confirm modal
               onPress={() => setCompleteItem(item)}
               onLongPress={() => startEdit(item)}
             />
-          )}
+            )
+          }}
         />
       )}
 
@@ -357,8 +373,10 @@ export default function Home() {
         setAddTitle('')
         setAddEmoji('')
         setAddTarget('')
+        setAddCategory('other')
         setAdding(true)
       }} />
+
 
       {/* ADD MODAL */}
       <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
@@ -413,6 +431,39 @@ export default function Home() {
               placeholderTextColor="#666"
               style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 16 }}
             />
+
+            {/*Category Pill*/}
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Category</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat.key}
+                  onPress={() => setAddCategory(cat.key)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: addCategory === cat.key ? theme.primary : theme.border,
+                    backgroundColor: addCategory === cat.key ? '#1d263b' : theme.bg,
+                    borderRadius: 999,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    gap: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 14 }}>{cat.emoji}</Text>
+                  <Text style={{ color: theme.text, fontSize: 13 }}>{cat.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+
 
             {/* Buttons */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: '100%', gap: 10, justifyContent: 'flex-end' }}>
@@ -528,14 +579,36 @@ export default function Home() {
           <View style={{ width: '100%', maxWidth: 440, backgroundColor: theme.card, borderColor: theme.border, borderWidth:1, borderRadius: 12, padding: 16 }}>
             <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Edit Counter</Text>
 
-            <Text style={{ color: theme.text, marginBottom: 6 }}>Title</Text>
-            <TextInput
-              value={editTitle}
-              onChangeText={setEditTitle}
-              placeholder="Title"
-              placeholderTextColor="#666"
-              style={{ color: theme.text, backgroundColor: theme.bg, borderColor: theme.border, borderWidth: 1, borderRadius: 8, padding: 10, marginBottom: 10 }}
-            />
+            <Text style={{ color: theme.text, marginBottom: 6 }}>Category</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 16,
+              }}
+            >
+              {CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat.key}
+                  onPress={() => setEditCategory(cat.key)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: editCategory === cat.key ? theme.primary : theme.border,
+                    backgroundColor: editCategory === cat.key ? '#1d263b' : theme.bg,
+                    borderRadius: 999,
+                    paddingVertical: 6,
+                    paddingHorizontal: 10,
+                    gap: 6,
+                  }}
+                >
+                  <Text style={{ fontSize: 14 }}>{cat.emoji}</Text>
+                  <Text style={{ color: theme.text, fontSize: 13 }}>{cat.label}</Text>
+                </Pressable>
+              ))}
+            </View>
 
             <Text style={{ color: theme.text, marginBottom: 6 }}>Emoji</Text>
             <TextInput

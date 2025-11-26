@@ -16,6 +16,8 @@ type Props = {
   status?: 'due' | 'soon' | "completed"
   overdueColors?: OverdueColors
   mutedColor?: string
+  categoryLabel?: string
+  categoryEmoji?: string
 }
 
 export function CounterCard({
@@ -28,6 +30,8 @@ export function CounterCard({
   overdueColors,
   mutedColor,
   status,
+  categoryLabel,
+  categoryEmoji,
 }: Props) {
   const isTargetFinite =
     typeof targetDays === 'number' && Number.isFinite(targetDays)
@@ -150,6 +154,39 @@ export function CounterCard({
           {title}
         </Text>
       </View>
+
+      {categoryLabel && (
+        <View
+          style={{
+            marginTop: 4,
+            alignSelf: 'flex-start',
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: '#1f2937',
+            backgroundColor: '#020617',
+            gap: 4,
+          }}
+        >
+          {categoryEmoji && (
+            <Text style={{ fontSize: 11 }}>
+              {categoryEmoji}
+            </Text>
+          )}
+          <Text
+            style={{
+              color: '#9ca3af',
+              fontSize: 11,
+              fontWeight: '600',
+            }}
+          >
+            {categoryLabel}
+          </Text>
+        </View>
+      )}
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <View>
