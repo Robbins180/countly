@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { countersRepo, type Counter, type CounterCategoryKey } from "../data";
+import { MS_DAY } from "../utils/date";
 
 export interface InsightSegment {
   label: string;
@@ -30,7 +31,7 @@ const CATEGORY_META: Record<CounterCategoryKey, { label: string; color: string }
 export function useInsightMockData(): WeeklyInsights {
   const [counters, setCounters] = useState<Counter[]>([]);
 
-  // Load all counters once for now (simple v1)
+  // Load all counters once for now
   useEffect(() => {
     countersRepo
       .all()
@@ -50,7 +51,54 @@ export function useInsightMockData(): WeeklyInsights {
     changePercent,
     isUp,
   } = useMemo(() => {
-    // ---- 1) Group non-archived counters by category ----
+    const now = Date.now();
+    const startOfThisWeek = now - 7 * MS_DAY;
+    const startOfLastWeek = now - 14 * MS_DAY;
+
+    // ---- 1) Filter for "this week" and "last week" based on lastAt ----
+    const isActive = (c: Counter) =>
+      !c.archived && typeof c.lastAt === "number" && Number.isFinite(c.lastAt);
+
+    const thisWeekCounters = counters.filter(
+      (c) => isActive(c) && (c.lastAt as number) >= startOfThisWeek
+    );
+
+    const lastWeekCounters = counters.filter(
+      (c) =>
+        isActive(c) &&
+        (c.lastAt as number) >= startOfLastWeek &&
+        (c.lastAt as number) < startOfThisWeek
+    );
+
+    // "Check-ins this week" = # of counters you touched in the last 7 days
+    const totalThisWeek = thisWeekCounters.length;
+
+    // Active days = distinct calendar days in last 7 days where something was updated
+    const activeDayKeys = new Set<string>();
+    for (const c of thisWeekCounters) {
+      const ts = c.lastAt as number;
+      const dayKey = new Date(ts).toDateString();
+      activeDayKeys.add(dayKey);
+    }
+    const activeDays = activeDayKeys.size;
+
+    // Top counter = most recently updated in this week, fallback to most recent overall
+    let topCounter = "Top counter";
+    if (thisWeekCounters.length > 0) {
+      const top = [...thisWeekCounters].sort(
+        (a, b) => (b.lastAt as number) - (a.lastAt as number)
+      )[0];
+      topCounter = top.title;
+    } else if (counters.length > 0) {
+      const top = [...counters]
+        .filter((c) => isActive(c))
+        .sort((a, b) => (b.lastAt as number) - (a.lastAt as number))[0];
+      if (top) topCounter = top.title;
+    }
+
+    const lastWeekTotal = lastWeekCounters.length;
+
+    // ---- 2) Donut segments: category mix of all non-archived counters ----
     const byCategory: Record<CounterCategoryKey, number> = {
       work: 0,
       health: 0,
@@ -65,7 +113,6 @@ export function useInsightMockData(): WeeklyInsights {
       byCategory[key] = (byCategory[key] ?? 0) + 1;
     }
 
-    // ---- 2) Build donut segments from the category map ----
     const segments: InsightSegment[] = (
       Object.keys(CATEGORY_META) as CounterCategoryKey[]
     )
@@ -76,14 +123,8 @@ export function useInsightMockData(): WeeklyInsights {
       }))
       .filter((seg) => seg.value > 0); // hide empty categories
 
-    const total = segments.reduce((sum, s) => sum + s.value, 0);
-
-    // ---- 3) Cheap-but-OK snapshot placeholders for now ----
-    const activeDays = 5; // will be made real later
-    const topCounter = counters[0]?.title ?? "Top counter";
-    const lastWeekTotal = 94; // placeholder
-
-    const change = total - lastWeekTotal;
+    const total = totalThisWeek; // for donut center + snapshot
+    const change = totalThisWeek - lastWeekTotal;
     const changePercent =
       lastWeekTotal > 0 ? Math.round((change / lastWeekTotal) * 100) : 0;
     const isUp = change >= 0;
