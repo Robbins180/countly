@@ -16,6 +16,7 @@ type Props = {
   status?: 'due' | 'soon' | "completed"
   overdueColors?: OverdueColors
   mutedColor?: string
+  completionsThisWeek?: number 
   categoryLabel?: string
   categoryEmoji?: string
 }
@@ -30,6 +31,7 @@ export function CounterCard({
   overdueColors,
   mutedColor,
   status,
+  completionsThisWeek, 
   categoryLabel,
   categoryEmoji,
 }: Props) {
@@ -194,30 +196,38 @@ export function CounterCard({
           <Text style={{ color: MUTED, fontSize: 12, marginTop: -4 }}>days</Text>
         </View>
 
-        {isTargetFinite ? (
-          <View
-            style={{
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 999,
-              borderWidth: 1,
-              borderColor: activeColors ? activeColors.text : theme.border,
-              backgroundColor: effectiveStatus ? activeColors!.bg : 'transparent',
-            }}
-          >
-            <Text
+        <View style={{ alignItems: 'flex-end' }}>
+          {completionsThisWeek != null && completionsThisWeek > 0 && (
+            <Text style={{ color: MUTED, fontSize: 11, marginBottom: 2 }}>
+              {completionsThisWeek}x this week
+            </Text>
+          )}
+
+          {isTargetFinite ? (
+            <View
               style={{
-                color: activeColors ? activeColors.text : MUTED,
-                fontSize: 12,
-                fontWeight: '700',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: activeColors ? activeColors.text : theme.border,
+                backgroundColor: effectiveStatus ? activeColors!.bg : 'transparent',
               }}
             >
-              target {targetDays}
-            </Text>
-          </View>
-        ) : (
-          <Text style={{ color: MUTED, fontSize: 12 }}>no target</Text>
-        )}
+              <Text
+                style={{
+                  color: activeColors ? activeColors.text : MUTED,
+                  fontSize: 12,
+                  fontWeight: '700',
+                }}
+              >
+                target {targetDays}
+              </Text>
+            </View>
+          ) : (
+            <Text style={{ color: MUTED, fontSize: 12 }}>no target</Text>
+          )}
+        </View>
       </View>
     </Pressable>
   )

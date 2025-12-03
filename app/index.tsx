@@ -23,6 +23,10 @@ export default function Home() {
   const [showArchived, setShowArchived] = useState(false)
   const [completeItem, setCompleteItem] = useState<Counter | null>(null)
 
+    // Category filter: 'all' or specific category key
+  const [categoryFilter, setCategoryFilter] = useState<'all' | CounterCategoryKey>('all')
+
+
   // ADD MODAL state
   const [adding, setAdding] = useState(false)
   const [addTitle, setAddTitle] = useState('')
@@ -58,9 +62,68 @@ export default function Home() {
   const [toast, setToast] = useState<string | null>(null)
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // History-derived: how many times each counter was completed in the last 7 days
+  const [completionsThisWeek, setCompletionsThisWeek] = useState<Record<string, number>>({})
+
+
   // Due Soon Feature
   const SOON_THRESHOLD_DAYS = 3
   type ItemStatus = "due" | "soon" | null
+
+    // --- History groundwork: basic event log for completions ---
+  type CounterEventType = 'completed';
+
+  type CounterEvent = {
+    id: string;
+    counterId: string;
+    at: number;
+    type: CounterEventType;
+    titleSnapshot: string;
+  };
+
+  const HISTORY_KEY = 'history.events';
+
+  async function appendHistoryEvent(evt: Omit<CounterEvent, 'id'>) {
+    try {
+      const raw = await AsyncStorage.getItem(HISTORY_KEY);
+      const list: CounterEvent[] = raw ? JSON.parse(raw) : [];
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const next = [...list, { ...evt, id }];
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.error('Failed to append history event', e);
+    }
+  }
+
+    // Recompute "completionsThisWeek" from history.events
+  async function recomputeHistoryCounts() {
+    try {
+      const raw = await AsyncStorage.getItem(HISTORY_KEY)
+      const list: CounterEvent[] = raw ? JSON.parse(raw) : []
+
+      const now = Date.now()
+      const cutoff = now - 7 * MS_DAY // last 7 days
+
+      const map: Record<string, number> = {}
+
+      for (const evt of list) {
+        if (evt.type !== 'completed') continue
+        if (evt.at < cutoff) continue
+        map[evt.counterId] = (map[evt.counterId] ?? 0) + 1
+      }
+
+      setCompletionsThisWeek(map)
+    } catch (e) {
+      console.error('Failed to recompute history counts', e)
+    }
+  }
+
+  // Load history counts on first mount
+  useEffect(() => {
+    recomputeHistoryCounts()
+  }, [])
+
+
 
   ////////////////////////////////////////////// functions //////////////////////////////////////
 
@@ -158,6 +221,11 @@ export default function Home() {
 
   const data = items
     .filter(m => (showArchived ? true : !m.archived))
+    .filter(m =>
+      categoryFilter === 'all'
+        ? true
+        : (((m.category as CounterCategoryKey) || 'other') === categoryFilter)
+      )
     .filter(m => !normalizedFilter || m.title.toLowerCase().includes(normalizedFilter))
     .map(item => {
       const days = daysSince(item.lastAt)
@@ -169,8 +237,11 @@ export default function Home() {
         else if (delta <= SOON_THRESHOLD_DAYS) status = 'soon'
       }
 
-      return { ...item, days, status }
+      const completionsForThisItem = completionsThisWeek[item.id] ?? 0
+
+      return { ...item, days, status, completionsThisWeek: completionsForThisItem }
     })
+
     .sort((a, b) => {
       if (sortMode === 'name') return a.title.localeCompare(b.title)
       const aDelta = a.targetDays != null ? a.targetDays - a.days : Infinity
@@ -211,10 +282,22 @@ export default function Home() {
       .catch(console.error)
   }, [])
 
-  // --- Minimal, working "Mark as Complete" ---
+    // --- Minimal, working "Mark as Complete" + log history event ---
   async function markComplete() {
     if (!completeItem) return
     try {
+      // 1) Log a "completed" event with a snapshot of this counter
+      await appendHistoryEvent({
+        counterId: completeItem.id,
+        at: Date.now(),
+        type: 'completed',
+        titleSnapshot: completeItem.title,
+      })
+
+      // 2) Update history-derived counts
+      await recomputeHistoryCounts()
+
+      // 3) Existing behavior: reset the counter
       await countersRepo.reset(completeItem.id)
       setCompleteItem(null)
       reload()
@@ -223,6 +306,7 @@ export default function Home() {
       console.error('Failed to mark complete', e)
     }
   }
+
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -248,6 +332,65 @@ export default function Home() {
             paddingHorizontal: 12,
           }}
         />
+      </View>
+
+      {/* CATEGORY FILTER ROW */}
+      <View style={{ paddingHorizontal: theme.pad, paddingTop: 4, paddingBottom: 6 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
+          {/* "All" chip */}
+          <Pressable
+            onPress={() => setCategoryFilter('all')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingVertical: 6,
+              paddingHorizontal: 10,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: categoryFilter === 'all' ? theme.primary : theme.border,
+              backgroundColor: categoryFilter === 'all' ? '#1d263b' : 'transparent',
+            }}
+          >
+            <Text style={{ color: categoryFilter === 'all' ? theme.primary : theme.text, fontSize: 13 }}>
+              All
+            </Text>
+          </Pressable>
+
+          {/* Category chips */}
+          {CATEGORIES.map((cat) => (
+            <Pressable
+              key={cat.key}
+              onPress={() => setCategoryFilter(cat.key)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: categoryFilter === cat.key ? theme.primary : theme.border,
+                backgroundColor: categoryFilter === cat.key ? '#1d263b' : 'transparent',
+                gap: 6,
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>{cat.emoji}</Text>
+              <Text
+                style={{
+                  color: categoryFilter === cat.key ? theme.primary : theme.text,
+                  fontSize: 13,
+                }}
+              >
+                {cat.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
 
       <View style={{ paddingHorizontal: theme.pad, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', gap: 8 }}>
@@ -302,6 +445,7 @@ export default function Home() {
         </Pressable>
       </View>
 
+
       {data.length === 0 ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: theme.pad }}>
           <Text style={{ color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
@@ -331,6 +475,7 @@ export default function Home() {
               days={item.days}
               targetDays={item.targetDays ?? undefined}
               status={item.status}
+              completionsThisWeek={item.completionsThisWeek}
                // NEW: category chip
               categoryLabel={categoryMeta?.label}
               categoryEmoji={categoryMeta?.emoji}

@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import useInsightMockData from "../hooks/useInsightMockData";
+import { useHistoryThisWeek } from "../hooks/useHistoryThisWeek";
+
 
 
 export default function InsightScreen() {
@@ -14,6 +16,8 @@ export default function InsightScreen() {
     isUp,
     thisWeekTotal,
   } = useInsightMockData();
+
+  const history = useHistoryThisWeek();
 
   const dueSegment = segments.find((s) => s.label === "Due");
   const soonSegment = segments.find((s) => s.label === "Due soon");
@@ -137,6 +141,49 @@ export default function InsightScreen() {
         )}
       </View>
 
+            {/* Real activity from history (last 7 days) */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Your real activity (last 7 days)</Text>
+
+        {history.loading ? (
+          <Text style={styles.cardHint}>Loading…</Text>
+        ) : history.totalThisWeek === 0 ? (
+          <Text style={styles.cardHint}>
+            No completions logged yet this week. Mark some counters as complete to see them here.
+          </Text>
+        ) : (
+          <>
+            <Text style={styles.insightText}>
+              You completed{" "}
+              <Text style={styles.insightHighlight}>{history.totalThisWeek}</Text>{" "}
+              events over the last 7 days.
+            </Text>
+
+            <View style={{ marginTop: 12 }}>
+              {history.byTitle.map((row) => (
+                <View
+                  key={row.title}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingVertical: 4,
+                  }}
+                >
+                  <Text
+                    style={{ color: "#e5e7eb", fontSize: 13, flex: 1 }}
+                    numberOfLines={1}
+                  >
+                    {row.title}
+                  </Text>
+                  <Text style={{ color: "#9ca3af", fontSize: 13, marginLeft: 12 }}>
+                    {row.count}×
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+      </View>
 
       <View style={{ height: 32 }} />
     </ScrollView>
