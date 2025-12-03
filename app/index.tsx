@@ -10,8 +10,15 @@ import { MS_DAY, daysSince } from '../utils/date'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // NEW: the storage repo (AsyncStorage-backed)
-import { countersRepo, type Counter, type CounterCategoryKey } from '../data'
+import { countersRepo } from '../data'
 
+// Local category type for the UI
+  type CounterCategoryKey = 'work' | 'health' | 'home' | 'personal' | 'other'
+
+// Derive Counter shape from the repo and extend for UI
+  type Counter = Awaited<ReturnType<typeof countersRepo.all>>[number] & {
+    category?: CounterCategoryKey | null
+  }
 
 export default function Home() {
   // holds persisted counters
@@ -865,8 +872,8 @@ export default function Home() {
                 {/* TOAST */}
           {toast && (
             <View
-              pointerEvents="none"
               style={{
+                pointerEvents: "none",
                 position: 'absolute',
                 left: 0,
                 right: 0,

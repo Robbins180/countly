@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import { View, Text, TextInput, Pressable, Alert } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { theme } from '../../utils/theme'
-import { countersRepo, type Counter } from '../../data'
+import { countersRepo } from '../../data'
+
+
+type CounterCategoryKey = 'work' | 'health' | 'home' | 'personal' | 'other'
+type Counter = Awaited<ReturnType<typeof countersRepo.all>>[number] & {
+  category?: CounterCategoryKey | null
+}
 
 export default function EditCounter() {
   const { id } = useLocalSearchParams<{ id: string }>()
