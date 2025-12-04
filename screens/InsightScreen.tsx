@@ -3,8 +3,6 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import useInsightMockData from "../hooks/useInsightMockData";
 import { useHistoryThisWeek } from "../hooks/useHistoryThisWeek";
 
-
-
 export default function InsightScreen() {
   const {
     total,
@@ -23,7 +21,6 @@ export default function InsightScreen() {
   const soonSegment = segments.find((s) => s.label === "Due soon");
   const dueCount = dueSegment?.value ?? 0;
   const soonCount = soonSegment?.value ?? 0;
-
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -56,7 +53,6 @@ export default function InsightScreen() {
           </View>
         </View>
 
-
         <Text style={styles.cardHint}>Based on your last 7 days in Countly</Text>
       </View>
 
@@ -74,24 +70,33 @@ export default function InsightScreen() {
 
           {/* Legend */}
           <View style={styles.legend}>
-            {segments.map((segment) => (
-              <View key={segment.label} style={styles.legendRow}>
-                <View
-                  style={[
-                    styles.legendDot,
-                    { backgroundColor: segment.color },
-                  ]}
-                />
-                <View style={styles.legendTextBlock}>
-                  <Text style={styles.legendLabel}>{segment.label}</Text>
-                  <Text style={styles.legendValue}>
-                    {segment.value} (
-                    {Math.round((segment.value / total) * 100)}
-                    %)
-                  </Text>
-                </View>
-              </View>
-            ))}
+            {segments.length === 0 ? (
+              <Text style={styles.cardHint}>
+                No segments to show yet. Start using your counters to see this fill in.
+              </Text>
+            ) : (
+              segments.map((segment) => {
+                const percent =
+                  total > 0 ? Math.round((segment.value / total) * 100) : 0;
+
+                return (
+                  <View key={segment.label} style={styles.legendRow}>
+                    <View
+                      style={[
+                        styles.legendDot,
+                        { backgroundColor: segment.color },
+                      ]}
+                    />
+                    <View style={styles.legendTextBlock}>
+                      <Text style={styles.legendLabel}>{segment.label}</Text>
+                      <Text style={styles.legendValue}>
+                        {segment.value} ({percent}%)
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
           </View>
         </View>
       </View>
@@ -118,10 +123,9 @@ export default function InsightScreen() {
             <Text style={styles.trendSubLabel}>vs last week</Text>
           </View>
         </View>
-
       </View>
 
-     {/* Simple “insight” blurb */}
+      {/* Simple “insight” blurb */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Quick Insight</Text>
         {dueCount === 0 && soonCount === 0 ? (
@@ -141,7 +145,7 @@ export default function InsightScreen() {
         )}
       </View>
 
-            {/* Real activity from history (last 7 days) */}
+      {/* Real activity from history (last 7 days) */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Your real activity (last 7 days)</Text>
 
@@ -149,13 +153,16 @@ export default function InsightScreen() {
           <Text style={styles.cardHint}>Loading…</Text>
         ) : history.totalThisWeek === 0 ? (
           <Text style={styles.cardHint}>
-            No completions logged yet this week. Mark some counters as complete to see them here.
+            No completions logged yet this week. Mark some counters as complete
+            to see them here.
           </Text>
         ) : (
           <>
             <Text style={styles.insightText}>
               You completed{" "}
-              <Text style={styles.insightHighlight}>{history.totalThisWeek}</Text>{" "}
+              <Text style={styles.insightHighlight}>
+                {history.totalThisWeek}
+              </Text>{" "}
               events over the last 7 days.
             </Text>
 
@@ -175,7 +182,9 @@ export default function InsightScreen() {
                   >
                     {row.title}
                   </Text>
-                  <Text style={{ color: "#9ca3af", fontSize: 13, marginLeft: 12 }}>
+                  <Text
+                    style={{ color: "#9ca3af", fontSize: 13, marginLeft: 12 }}
+                  >
                     {row.count}×
                   </Text>
                 </View>

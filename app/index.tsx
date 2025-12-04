@@ -1,13 +1,15 @@
 // app/index.tsx
 import { useEffect, useState, useRef } from 'react'
 import { Link } from "expo-router";
-import { View, FlatList, Modal, Text, TextInput, Pressable } from 'react-native'
+import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
 import { Header } from '../components/Header'
 import { FAB } from '../components/FAB'
 import { CounterCard } from '../components/CounterCard'
 import { theme } from '../utils/theme'
 import { MS_DAY, daysSince } from '../utils/date'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { appendHistoryEntry } from "../utils/history";
+
 
 // NEW: the storage repo (AsyncStorage-backed)
 import { countersRepo } from '../data'
@@ -88,19 +90,33 @@ export default function Home() {
     titleSnapshot: string;
   };
 
-  const HISTORY_KEY = 'history.events';
+  const HISTORY_KEY = "history.events";
 
-  async function appendHistoryEvent(evt: Omit<CounterEvent, 'id'>) {
-    try {
-      const raw = await AsyncStorage.getItem(HISTORY_KEY);
-      const list: CounterEvent[] = raw ? JSON.parse(raw) : [];
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const next = [...list, { ...evt, id }];
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
-    } catch (e) {
-      console.error('Failed to append history event', e);
+    async function appendHistoryEvent(evt: Omit<CounterEvent, "id">) {
+      try {
+        const raw = await AsyncStorage.getItem(HISTORY_KEY);
+        const list: CounterEvent[] = raw ? JSON.parse(raw) : [];
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const next = [...list, { ...evt, id }];
+
+        // keep existing behavior
+        await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+
+        // NEW: also mirror to the unified history store
+        await appendHistoryEntry({
+          id: evt.counterId,              // existing field on CounterEvent
+          label: evt.titleSnapshot,       // existing field on CounterEvent
+          valueAfter: 0,                  // not used by Insights (yet)
+          delta: 0,                       // not used by Insights (yet)
+          type: "completed",
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error("Failed to append history event", e);
+      }
     }
-  }
+
+
 
     // Recompute "completionsThisWeek" from history.events
   async function recomputeHistoryCounts() {
@@ -169,12 +185,32 @@ export default function Home() {
     reload()
   }
 
-  async function deleteItem() {
+    function deleteItem() {
     if (!editing) return
-    await countersRepo.remove(editing.id)
-    setEditing(null)
-    reload()
+
+    Alert.alert(
+      'Delete counter?',
+      `This will permanently delete “${editing.title}”. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await countersRepo.remove(editing.id)
+              setEditing(null)
+              reload()
+              showToast('Deleted')
+            } catch (e) {
+              console.error('Failed to delete counter', e)
+            }
+          },
+        },
+      ]
+    )
   }
+
 
   // create a new counter
   async function addNew() {

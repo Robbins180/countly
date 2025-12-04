@@ -1,18 +1,7 @@
 import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MS_DAY } from "../utils/date";
+import { loadHistory, CounterHistoryEntry } from "../utils/history";
 
-type CounterEventType = "completed";
-
-type CounterEvent = {
-  id: string;
-  counterId: string;
-  at: number;
-  type: CounterEventType;
-  titleSnapshot: string;
-};
-
-const HISTORY_KEY = "history.events";
 
 export interface HistoryThisWeek {
   loading: boolean;
@@ -32,8 +21,7 @@ export function useHistoryThisWeek(): HistoryThisWeek {
 
     async function load() {
       try {
-        const raw = await AsyncStorage.getItem(HISTORY_KEY);
-        const list: CounterEvent[] = raw ? JSON.parse(raw) : [];
+        const allEntries: CounterHistoryEntry[] = await loadHistory();
 
         const now = Date.now();
         const cutoff = now - 7 * MS_DAY; // last 7 days
@@ -41,11 +29,13 @@ export function useHistoryThisWeek(): HistoryThisWeek {
         const countsByTitle: Record<string, number> = {};
         let total = 0;
 
-        for (const evt of list) {
-          if (evt.type !== "completed") continue;
-          if (evt.at < cutoff) continue;
+        for (const entry of allEntries) {
+          // history.ts uses an ISO timestamp string
+          const atMs = new Date(entry.timestamp).getTime();
+          if (Number.isNaN(atMs)) continue;
+          if (atMs < cutoff) continue;
 
-          const title = evt.titleSnapshot || "Untitled";
+          const title = entry.label?.trim() || "Untitled";
           countsByTitle[title] = (countsByTitle[title] ?? 0) + 1;
           total += 1;
         }
@@ -62,6 +52,7 @@ export function useHistoryThisWeek(): HistoryThisWeek {
             byTitle,
           });
         }
+
       } catch (e) {
         console.error("Failed to read history.events", e);
         if (!cancelled) {
