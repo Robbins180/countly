@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { MS_DAY } from "../utils/date";
 import { loadHistory, CounterHistoryEntry } from "../utils/history";
+import { historyRepo, type HistoryEvent } from '../data'
+
 
 
 export interface HistoryThisWeek {

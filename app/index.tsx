@@ -9,6 +9,7 @@ import { theme } from '../utils/theme'
 import { MS_DAY, daysSince } from '../utils/date'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { appendHistoryEntry } from "../utils/history";
+import { historyRepo } from '../data' 
 
 
 // NEW: the storage repo (AsyncStorage-backed)
@@ -326,22 +327,20 @@ export default function Home() {
   }, [])
 
     // --- Minimal, working "Mark as Complete" + log history event ---
-  async function markComplete() {
+    async function markComplete() {
     if (!completeItem) return
     try {
-      // 1) Log a "completed" event with a snapshot of this counter
-      await appendHistoryEvent({
+      await countersRepo.reset(completeItem.id)
+
+      // ⭐ NEW: record the history event
+      await historyRepo.add({
         counterId: completeItem.id,
-        at: Date.now(),
-        type: 'completed',
-        titleSnapshot: completeItem.title,
+        title: completeItem.title,
+        emoji: completeItem.emoji ?? null,
+        timestamp: Date.now(),
+        action: 'complete',
       })
 
-      // 2) Update history-derived counts
-      await recomputeHistoryCounts()
-
-      // 3) Existing behavior: reset the counter
-      await countersRepo.reset(completeItem.id)
       setCompleteItem(null)
       reload()
       showToast('Marked complete')
