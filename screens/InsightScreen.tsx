@@ -4,6 +4,7 @@ import useInsightMockData from "../hooks/useInsightMockData";
 import { useHistoryThisWeek } from "../hooks/useHistoryThisWeek";
 
 export default function InsightScreen() {
+
   const {
     total,
     activeDays,
@@ -12,8 +13,8 @@ export default function InsightScreen() {
     change,
     changePercent,
     isUp,
-    thisWeekTotal,
-  } = useInsightMockData();
+  } = useInsightMockData(rangeDays);
+
 
   const history = useHistoryThisWeek();
 
@@ -32,6 +33,7 @@ export default function InsightScreen() {
   ];
 
   const [rangeKey, setRangeKey] = React.useState<RangeKey>("7");
+  
   const rangeDays = rangeKey === "all" ? null : parseInt(rangeKey, 10);
 
 
@@ -63,6 +65,32 @@ export default function InsightScreen() {
           );
         })}
       </View>
+
+            {/* Range selector */}
+      <View style={styles.rangeRow}>
+        {[
+          { label: "7d", value: 7 as number | null },
+          { label: "30d", value: 30 as number | null },
+          { label: "90d", value: 90 as number | null },
+          { label: "All", value: null as number | null },
+        ].map((opt) => {
+          const active = opt.value === rangeDays;
+          return (
+            <View key={opt.label} style={{ marginRight: 8 }}>
+              <Text
+                onPress={() => setRangeDays(opt.value)}
+                style={[
+                  styles.rangeChip,
+                  active && styles.rangeChipActive,
+                ]}
+              >
+                {opt.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
 
       {/* Weekly Snapshot */}
       <View style={styles.card}>
@@ -432,4 +460,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#fbbf24",
   },
+    rangeRow: {
+    flexDirection: "row",
+    marginBottom: 16,
+  },
+  rangeChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#1f2937",
+    color: "#e5e7eb",
+    fontSize: 12,
+    fontWeight: "700",
+    backgroundColor: "transparent",
+    overflow: "hidden",
+  },
+  rangeChipActive: {
+    borderColor: "#4f46e5",
+    color: "#cfe1ff",
+    backgroundColor: "#111827",
+  }
+
 });
