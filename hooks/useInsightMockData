@@ -28,7 +28,7 @@ const CATEGORY_META: Record<CounterCategoryKey, { label: string; color: string }
   other:   { label: "Other",             color: "#9ca3af" }, // gray
 };
 
-export function useInsightMockData(): WeeklyInsights {
+export function useInsightMockData(rangeDays: number | null = 7): WeeklyInsights {
   const [counters, setCounters] = useState<Counter[]>([]);
 
   // Load all counters once for now
@@ -41,7 +41,7 @@ export function useInsightMockData(): WeeklyInsights {
       });
   }, []);
 
-  const {
+    const {
     total,
     activeDays,
     topCounter,
@@ -52,53 +52,60 @@ export function useInsightMockData(): WeeklyInsights {
     isUp,
   } = useMemo(() => {
     const now = Date.now();
-    const startOfThisWeek = now - 7 * MS_DAY;
-    const startOfLastWeek = now - 14 * MS_DAY;
 
-    // ---- 1) Filter for "this week" and "last week" based on lastAt ----
+    // Range start (null = all time)
+    const startOfThisRange = rangeDays == null ? 0 : now - rangeDays * MS_DAY;
+
+    // Previous range (only if rangeDays is not null)
+    const startOfPrevRange =
+      rangeDays == null ? 0 : now - 2 * rangeDays * MS_DAY;
+
     const isActive = (c: Counter) =>
       !c.archived && typeof c.lastAt === "number" && Number.isFinite(c.lastAt);
 
-    const thisWeekCounters = counters.filter(
-      (c) => isActive(c) && (c.lastAt as number) >= startOfThisWeek
+    // ---- 1) Filter for "this range" and "prev range" based on lastAt ----
+    const thisRangeCounters = counters.filter(
+      (c) => isActive(c) && (c.lastAt as number) >= startOfThisRange
     );
 
-    const lastWeekCounters = counters.filter(
-      (c) =>
-        isActive(c) &&
-        (c.lastAt as number) >= startOfLastWeek &&
-        (c.lastAt as number) < startOfThisWeek
-    );
+    const prevRangeCounters =
+      rangeDays == null
+        ? [] // no meaningful "previous range" when using All
+        : counters.filter(
+            (c) =>
+              isActive(c) &&
+              (c.lastAt as number) >= startOfPrevRange &&
+              (c.lastAt as number) < startOfThisRange
+          );
 
-    // "Check-ins this week" = # of counters you touched in the last 7 days
-    const totalThisWeek = thisWeekCounters.length;
+    // "Total" = # counters touched in the selected range (based on lastAt)
+    const totalThisRange = thisRangeCounters.length;
 
-    // Active days = distinct calendar days in last 7 days where something was updated
+    // Active days = distinct calendar days in range where something was updated
     const activeDayKeys = new Set<string>();
-    for (const c of thisWeekCounters) {
+    for (const c of thisRangeCounters) {
       const ts = c.lastAt as number;
-      const dayKey = new Date(ts).toDateString();
-      activeDayKeys.add(dayKey);
+      activeDayKeys.add(new Date(ts).toDateString());
     }
     const activeDays = activeDayKeys.size;
 
-    // Top counter = most recently updated in this week, fallback to most recent overall
+    // Top counter = most recently updated within range, fallback to most recent overall
     let topCounter = "Top counter";
-    if (thisWeekCounters.length > 0) {
-      const top = [...thisWeekCounters].sort(
+    if (thisRangeCounters.length > 0) {
+      const top = [...thisRangeCounters].sort(
         (a, b) => (b.lastAt as number) - (a.lastAt as number)
       )[0];
       topCounter = top.title;
-    } else if (counters.length > 0) {
+    } else {
       const top = [...counters]
         .filter((c) => isActive(c))
         .sort((a, b) => (b.lastAt as number) - (a.lastAt as number))[0];
       if (top) topCounter = top.title;
     }
 
-    const lastWeekTotal = lastWeekCounters.length;
+    const prevTotal = prevRangeCounters.length;
 
-    // ---- 2) Donut segments: category mix of all non-archived counters ----
+    // ---- 2) Donut segments: category mix of counters touched in THIS range ----
     const byCategory: Record<CounterCategoryKey, number> = {
       work: 0,
       health: 0,
@@ -107,8 +114,7 @@ export function useInsightMockData(): WeeklyInsights {
       other: 0,
     };
 
-    for (const c of counters) {
-      if (c.archived) continue;
+    for (const c of thisRangeCounters) {
       const key = ((c.category as CounterCategoryKey) || "other") as CounterCategoryKey;
       byCategory[key] = (byCategory[key] ?? 0) + 1;
     }
@@ -121,25 +127,33 @@ export function useInsightMockData(): WeeklyInsights {
         value: byCategory[key] ?? 0,
         color: CATEGORY_META[key].color,
       }))
-      .filter((seg) => seg.value > 0); // hide empty categories
+      .filter((seg) => seg.value > 0);
 
-    const total = totalThisWeek; // for donut center + snapshot
-    const change = totalThisWeek - lastWeekTotal;
+    const total = totalThisRange;
+
+    // Trend math: if All-time, suppress “vs last range”
+    const change = rangeDays == null ? 0 : totalThisRange - prevTotal;
     const changePercent =
-      lastWeekTotal > 0 ? Math.round((change / lastWeekTotal) * 100) : 0;
+      rangeDays == null
+        ? 0
+        : prevTotal > 0
+        ? Math.round((change / prevTotal) * 100)
+        : 0;
+
     const isUp = change >= 0;
 
     return {
       total,
       activeDays,
       topCounter,
-      lastWeekTotal,
+      lastWeekTotal: prevTotal, // keep field name for now to avoid UI refactor
       segments,
       change,
       changePercent,
       isUp,
     };
-  }, [counters]);
+  }, [counters, rangeDays]);
+
 
   return {
     total,

@@ -22,12 +22,46 @@ export default function InsightScreen() {
   const dueCount = dueSegment?.value ?? 0;
   const soonCount = soonSegment?.value ?? 0;
 
+  type RangeKey = "7" | "30" | "90" | "all";
+
+  const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
+    { key: "7", label: "7d" },
+    { key: "30", label: "30d" },
+    { key: "90", label: "90d" },
+    { key: "all", label: "All" },
+  ];
+
+  const [rangeKey, setRangeKey] = React.useState<RangeKey>("7");
+  const rangeDays = rangeKey === "all" ? null : parseInt(rangeKey, 10);
+
+
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Insights</Text>
         <Text style={styles.subtitle}>Your counters at a glance</Text>
+      </View>
+
+      <View style={styles.rangeRow}>
+        {RANGE_OPTIONS.map((opt) => {
+          const active = opt.key === rangeKey;
+          return (
+            <Pressable
+              key={opt.key}
+              onPress={() => setRangeKey(opt.key)}
+              style={[
+                styles.rangeChip,
+                active ? styles.rangeChipActive : styles.rangeChipIdle,
+              ]}
+            >
+              <Text style={[styles.rangeChipText, active && styles.rangeChipTextActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Weekly Snapshot */}
@@ -205,6 +239,33 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     backgroundColor: "#020617", // slate-950 vibe
     flexGrow: 1,
+  },
+    rangeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  rangeChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  rangeChipIdle: {
+    borderColor: "#1f2937",
+    backgroundColor: "transparent",
+  },
+  rangeChipActive: {
+    borderColor: "#4f46e5",
+    backgroundColor: "#111827",
+  },
+  rangeChipText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#9ca3af",
+  },
+  rangeChipTextActive: {
+    color: "#cfe1ff",
   },
   header: {
     marginBottom: 16,

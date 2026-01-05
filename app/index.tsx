@@ -337,7 +337,7 @@ export default function Home() {
         counterId: completeItem.id,
         title: completeItem.title,
         emoji: completeItem.emoji ?? null,
-        timestamp: Date.now(),
+        timestamp: Date.now(),  
         action: 'complete',
       })
 
