@@ -1,19 +1,22 @@
 // app/index.tsx
-import { useEffect, useState, useRef } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link } from "expo-router";
-import { View, FlatList, Modal, Text, TextInput, Pressable, Alert } from 'react-native'
-import { Header } from '../components/Header'
-import { FAB } from '../components/FAB'
-import { CounterCard } from '../components/CounterCard'
-import { theme } from '../utils/theme'
-import { MS_DAY, daysSince } from '../utils/date'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { CounterCard } from '../components/CounterCard';
+import { FAB } from '../components/FAB';
+import { Header } from '../components/Header';
+import { historyRepo } from '../data';
+import { MS_DAY, daysSince } from '../utils/date';
 import { appendHistoryEntry } from "../utils/history";
-import { historyRepo } from '../data' 
+import { canCreateCounter, getPaywallSubtitle } from "../utils/pro";
+import { theme } from '../utils/theme';
+
+
 
 
 // NEW: the storage repo (AsyncStorage-backed)
-import { countersRepo } from '../data'
+import { countersRepo } from '../data';
 
 // Local category type for the UI
   type CounterCategoryKey = 'work' | 'health' | 'home' | 'personal' | 'other'
@@ -74,6 +77,9 @@ export default function Home() {
 
   // History-derived: how many times each counter was completed in the last 7 days
   const [completionsThisWeek, setCompletionsThisWeek] = useState<Record<string, number>>({})
+
+  // Pro Features
+  const isPro = false;
 
 
   // Due Soon Feature
@@ -213,23 +219,45 @@ export default function Home() {
   }
 
 
-  // create a new counter
-  async function addNew() {
-    if (!addTitle.trim()) return
-    await countersRepo.add({
-      title: addTitle.trim(),
-      emoji: addEmoji.trim() ? addEmoji.trim() : null,
-      targetDays: addTarget ? parseInt(addTarget, 10) : null,
-      lastAt: Date.now(), // start at 0 days
-      category: addCategory,
-    })
-    setAdding(false)
-    setAddTitle('')
-    setAddEmoji('')
-    setAddTarget('')
-    setAddCategory('other')
+    // create a new counter
+        async function addNew() {
+      try {
+        if (!addTitle.trim()) return;
 
-  }
+        const existing = await countersRepo.all();
+        const currentCount = existing.filter((m) => !m.archived).length;
+
+        if (!canCreateCounter(currentCount, isPro)) {
+          Alert.alert("Upgrade to Pro", getPaywallSubtitle("counters"));
+          return;
+        }
+
+        await countersRepo.add({
+          title: addTitle.trim(),
+          emoji: addEmoji.trim() ? addEmoji.trim() : null,
+          targetDays: addTarget ? parseInt(addTarget, 10) : null,
+          lastAt: Date.now(),
+          category: addCategory,
+        });
+
+        setAdding(false);
+        setAddTitle("");
+        setAddEmoji("");
+        setAddTarget("");
+        setAddCategory("other");
+
+        reload();
+      } catch (e: any) {
+        console.error("addNew failed", e);
+        Alert.alert("Save failed", String(e?.message ?? e));
+      }
+    }
+
+
+
+
+
+
 
   // Calls existing repo .add() to create a new counter from currently edited one, then refreshes the list and shows toast
   async function duplicateSelected() {
