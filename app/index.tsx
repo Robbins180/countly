@@ -7,10 +7,12 @@ import { CounterCard } from '../components/CounterCard';
 import { FAB } from '../components/FAB';
 import { Header } from '../components/Header';
 import { historyRepo } from '../data';
+import { cleanupExpired, getMultiplier, loadBoosts, saveBoosts, type Boost } from '../utils/boost';
 import { MS_DAY, daysSince } from '../utils/date';
 import { appendHistoryEntry } from "../utils/history";
 import { canCreateCounter, getPaywallSubtitle } from "../utils/pro";
 import { theme } from '../utils/theme';
+
 
 
 
@@ -123,10 +125,39 @@ export default function Home() {
       }
     }
 
+    // Boost Section
+
+    const [boosts, setBoosts] = useState<Boost[]>([]);
+    const boostsTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+      let alive = true;
+
+      (async () => {
+        const loaded = cleanupExpired(await loadBoosts());
+        if (!alive) return;
+        setBoosts(loaded);
+        await saveBoosts(loaded); // keep storage clean
+      })();
+
+      boostsTickRef.current = setInterval(() => {
+        setBoosts(prev => cleanupExpired(prev));
+      }, 5_000);
+
+      return () => {
+        alive = false;
+        if (boostsTickRef.current) clearInterval(boostsTickRef.current);
+      };
+    }, []);
+
+    
+
+
+
 
 
     // Recompute "completionsThisWeek" from history.events
-  async function recomputeHistoryCounts() {
+    async function recomputeHistoryCounts() {
     try {
       const raw = await AsyncStorage.getItem(HISTORY_KEY)
       const list: CounterEvent[] = raw ? JSON.parse(raw) : []
@@ -360,14 +391,20 @@ export default function Home() {
     try {
       await countersRepo.reset(completeItem.id)
 
-      // ⭐ NEW: record the history event
-      await historyRepo.add({
-        counterId: completeItem.id,
-        title: completeItem.title,
-        emoji: completeItem.emoji ?? null,
-        timestamp: Date.now(),  
-        action: 'complete',
-      })
+      //  NEW: record the history event
+      const mult = getMultiplier(boosts, completeItem.id);
+      const times = Math.max(1, Math.floor(mult));
+
+      for (let i = 0; i < times; i++) {
+        await historyRepo.add({
+          counterId: completeItem.id,
+          title: completeItem.title,
+          emoji: completeItem.emoji ?? null,
+          timestamp: Date.now(),
+          action: 'complete',
+        });
+      }
+
 
       setCompleteItem(null)
       reload()
