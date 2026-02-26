@@ -16,6 +16,7 @@ Track anything with one tap — haircuts, workouts, oil changes. Countly remembe
 - Optional, opt-in anonymous analytics (PostHog/Amplitude)
 
 ---
+## ✨ Current State(v1.4.1)
 
 ## 🛠 Tech Stack
 - **App:** Expo (React Native, TypeScript)
