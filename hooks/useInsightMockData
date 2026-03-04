@@ -1,0 +1,168 @@
+import { useEffect, useMemo, useState } from "react";
+import { countersRepo, type Counter, type CounterCategoryKey } from "../data";
+import { MS_DAY } from "../utils/date";
+
+export interface InsightSegment {
+  label: string;
+  value: number;
+  color: string;
+}
+
+export interface WeeklyInsights {
+  total: number;
+  activeDays: number;
+  topCounter: string;
+  lastWeekTotal: number;
+  segments: InsightSegment[];
+  change: number;
+  changePercent: number;
+  isUp: boolean;
+}
+
+// Map category keys → label + color for the donut
+const CATEGORY_META: Record<CounterCategoryKey, { label: string; color: string }> = {
+  work:    { label: "Work",              color: "#4f46e5" }, // indigo
+  health:  { label: "Health & Wellness", color: "#10b981" }, // emerald
+  home:    { label: "Home & Chores",     color: "#f59e0b" }, // amber
+  personal:{ label: "Personal",          color: "#8b5cf6" }, // purple-ish
+  other:   { label: "Other",             color: "#9ca3af" }, // gray
+};
+
+export function useInsightMockData(rangeDays: number | null = 7): WeeklyInsights {
+  const [counters, setCounters] = useState<Counter[]>([]);
+
+  // Load all counters once for now
+  useEffect(() => {
+    countersRepo
+      .all()
+      .then(setCounters)
+      .catch((err) => {
+        console.error("Failed to load counters for insights", err);
+      });
+  }, []);
+
+    const {
+    total,
+    activeDays,
+    topCounter,
+    lastWeekTotal,
+    segments,
+    change,
+    changePercent,
+    isUp,
+  } = useMemo(() => {
+    const now = Date.now();
+
+    // Range start (null = all time)
+    const startOfThisRange = rangeDays == null ? 0 : now - rangeDays * MS_DAY;
+
+    // Previous range (only if rangeDays is not null)
+    const startOfPrevRange =
+      rangeDays == null ? 0 : now - 2 * rangeDays * MS_DAY;
+
+    const isActive = (c: Counter) =>
+      !c.archived && typeof c.lastAt === "number" && Number.isFinite(c.lastAt);
+
+    // ---- 1) Filter for "this range" and "prev range" based on lastAt ----
+    const thisRangeCounters = counters.filter(
+      (c) => isActive(c) && (c.lastAt as number) >= startOfThisRange
+    );
+
+    const prevRangeCounters =
+      rangeDays == null
+        ? [] // no meaningful "previous range" when using All
+        : counters.filter(
+            (c) =>
+              isActive(c) &&
+              (c.lastAt as number) >= startOfPrevRange &&
+              (c.lastAt as number) < startOfThisRange
+          );
+
+    // "Total" = # counters touched in the selected range (based on lastAt)
+    const totalThisRange = thisRangeCounters.length;
+
+    // Active days = distinct calendar days in range where something was updated
+    const activeDayKeys = new Set<string>();
+    for (const c of thisRangeCounters) {
+      const ts = c.lastAt as number;
+      activeDayKeys.add(new Date(ts).toDateString());
+    }
+    const activeDays = activeDayKeys.size;
+
+    // Top counter = most recently updated within range, fallback to most recent overall
+    let topCounter = "Top counter";
+    if (thisRangeCounters.length > 0) {
+      const top = [...thisRangeCounters].sort(
+        (a, b) => (b.lastAt as number) - (a.lastAt as number)
+      )[0];
+      topCounter = top.title;
+    } else {
+      const top = [...counters]
+        .filter((c) => isActive(c))
+        .sort((a, b) => (b.lastAt as number) - (a.lastAt as number))[0];
+      if (top) topCounter = top.title;
+    }
+
+    const prevTotal = prevRangeCounters.length;
+
+    // ---- 2) Donut segments: category mix of counters touched in THIS range ----
+    const byCategory: Record<CounterCategoryKey, number> = {
+      work: 0,
+      health: 0,
+      home: 0,
+      personal: 0,
+      other: 0,
+    };
+
+    for (const c of thisRangeCounters) {
+      const key = ((c.category as CounterCategoryKey) || "other") as CounterCategoryKey;
+      byCategory[key] = (byCategory[key] ?? 0) + 1;
+    }
+
+    const segments: InsightSegment[] = (
+      Object.keys(CATEGORY_META) as CounterCategoryKey[]
+    )
+      .map((key) => ({
+        label: CATEGORY_META[key].label,
+        value: byCategory[key] ?? 0,
+        color: CATEGORY_META[key].color,
+      }))
+      .filter((seg) => seg.value > 0);
+
+    const total = totalThisRange;
+
+    // Trend math: if All-time, suppress “vs last range”
+    const change = rangeDays == null ? 0 : totalThisRange - prevTotal;
+    const changePercent =
+      rangeDays == null
+        ? 0
+        : prevTotal > 0
+        ? Math.round((change / prevTotal) * 100)
+        : 0;
+
+    const isUp = change >= 0;
+
+    return {
+      total,
+      activeDays,
+      topCounter,
+      lastWeekTotal: prevTotal, // keep field name for now to avoid UI refactor
+      segments,
+      change,
+      changePercent,
+      isUp,
+    };
+  }, [counters, rangeDays]);
+
+
+  return {
+    total,
+    activeDays,
+    topCounter,
+    lastWeekTotal,
+    segments,
+    change,
+    changePercent,
+    isUp,
+  };
+}
