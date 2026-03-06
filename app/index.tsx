@@ -1,33 +1,19 @@
-// app/index.tsx
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  FlatList,
-  Modal,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, FlatList, Modal, Pressable, Text, TextInput, View, } from "react-native";
 import { CounterCard } from "../components/CounterCard";
 import { FAB } from "../components/FAB";
 import { Header } from "../components/Header";
 import { historyRepo } from "../data";
-import {
-  cleanupExpired,
-  getMultiplier,
-  loadBoosts,
-  saveBoosts,
-  type Boost,
-} from "../utils/boost";
+import { cleanupExpired, getMultiplier, loadBoosts, saveBoosts, type Boost, } from "../utils/boost";
 import { MS_DAY, daysSince } from "../utils/date";
 import { appendHistoryEntry } from "../utils/history";
 import { canCreateCounter, getPaywallSubtitle } from "../utils/pro";
 import { theme } from "../utils/theme";
 
-// NEW: the storage repo (AsyncStorage-backed)
+// The storage repo (AsyncStorage-backed)
 import { countersRepo } from "../data";
 
 // Local category type for the UI
