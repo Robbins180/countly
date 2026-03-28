@@ -1,4 +1,4 @@
-// utils/boosts.ts
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Boost = {
@@ -60,16 +60,15 @@ export function makeBoost(params: {
   };
 }
 
+function isBoost(x: Boost | null): x is Boost {
+  return x !== null;
+}
+
 function normalize(x: any): Boost | null {
   if (!x) return null;
-
   return {
     counterId: String(x.counterId ?? ''),
     multiplier: Number(x.multiplier ?? 1),
     endsAt: Number(x.endsAt ?? 0),
   };
-
-  function isBoost(x: Boost | null): x is Boost {
-    return x!== null;
-  }
 }
