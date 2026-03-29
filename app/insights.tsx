@@ -4,8 +4,6 @@ import { FlatList, Pressable, Text, View } from 'react-native';
 import { Header } from '../components/Header';
 import { theme } from '../utils/theme';
 
-// Keep this import style consistent with your project.
-// If your InsightScreen is a default export, use: import InsightScreen from '../screens/InsightScreen'
 import InsightScreen from '../screens/InsightScreen';
 
 

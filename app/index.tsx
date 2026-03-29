@@ -9,7 +9,6 @@ import { Header } from "../components/Header";
 import { historyRepo } from "../data";
 import { cleanupExpired, getMultiplier, loadBoosts, saveBoosts, type Boost, } from "../utils/boost";
 import { MS_DAY, daysSince } from "../utils/date";
-import { appendHistoryEntry } from "../utils/history";
 import { canCreateCounter, getPaywallSubtitle } from "../utils/pro";
 import { theme } from "../utils/theme";
 
@@ -113,43 +112,6 @@ export default function Home() {
   const SOON_THRESHOLD_DAYS = 3;
   type ItemStatus = "due" | "soon" | null;
 
-  // --- History groundwork: basic event log for completions ---
-  type CounterEventType = "completed";
-
-  type CounterEvent = {
-    id: string;
-    counterId: string;
-    at: number;
-    type: CounterEventType;
-    titleSnapshot: string;
-  };
-
-  const HISTORY_KEY = "history.events";
-
-  async function appendHistoryEvent(evt: Omit<CounterEvent, "id">) {
-    try {
-      const raw = await AsyncStorage.getItem(HISTORY_KEY);
-      const list: CounterEvent[] = raw ? JSON.parse(raw) : [];
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const next = [...list, { ...evt, id }];
-
-      // keep existing behavior
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(next));
-
-      // NEW: also mirror to the unified history store
-      await appendHistoryEntry({
-        id: evt.counterId, // existing field on CounterEvent
-        label: evt.titleSnapshot, // existing field on CounterEvent
-        valueAfter: 0, // not used by Insights (yet)
-        delta: 0, // not used by Insights (yet)
-        type: "completed",
-        timestamp: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.error("Failed to append history event", e);
-    }
-  }
-
   // Boost Section
 
   const [boosts, setBoosts] = useState<Boost[]>([]);
@@ -197,11 +159,6 @@ export default function Home() {
       console.error("Failed to recompute history counts", e);
     }
   }
-
-  // Load history counts on first mount
-  useEffect(() => {
-    recomputeHistoryCounts();
-  }, []);
 
   ////////////////////////////////////////////// functions //////////////////////////////////////
 

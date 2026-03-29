@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { MS_DAY } from "../utils/date";
-import { loadHistory, CounterHistoryEntry } from "../utils/history";
-import { historyRepo, type HistoryEvent } from '../data'
-
-
+import { historyRepo } from "../data";
 
 export interface HistoryThisWeek {
   loading: boolean;
@@ -23,21 +20,13 @@ export function useHistoryThisWeek(): HistoryThisWeek {
 
     async function load() {
       try {
-        const allEntries: CounterHistoryEntry[] = await loadHistory();
-
-        const now = Date.now();
-        const cutoff = now - 7 * MS_DAY; // last 7 days
+        const events = await historyRepo.recentDays(7);
 
         const countsByTitle: Record<string, number> = {};
         let total = 0;
 
-        for (const entry of allEntries) {
-          // history.ts uses an ISO timestamp string
-          const atMs = new Date(entry.timestamp).getTime();
-          if (Number.isNaN(atMs)) continue;
-          if (atMs < cutoff) continue;
-
-          const title = entry.label?.trim() || "Untitled";
+        for (const event of events) {
+          const title = event.title?.trim() || "Untitled";
           countsByTitle[title] = (countsByTitle[title] ?? 0) + 1;
           total += 1;
         }
@@ -48,30 +37,18 @@ export function useHistoryThisWeek(): HistoryThisWeek {
           .slice(0, 5);
 
         if (!cancelled) {
-          setState({
-            loading: false,
-            totalThisWeek: total,
-            byTitle,
-          });
+          setState({ loading: false, totalThisWeek: total, byTitle });
         }
-
       } catch (e) {
-        console.error("Failed to read history.events", e);
+        console.error("useHistoryThisWeek failed", e);
         if (!cancelled) {
-          setState({
-            loading: false,
-            totalThisWeek: 0,
-            byTitle: [],
-          });
+          setState({ loading: false, totalThisWeek: 0, byTitle: [] });
         }
       }
     }
 
     load();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   return state;
