@@ -8,7 +8,8 @@ export type Counter = {
   emoji?: string | null
   lastAt: number
   targetDays?: number | null
-  archived?: boolean         // ← new optional flag
+  archived?: boolean
+  category?: string | null 
 }
 
 export type CountersRepo = {
