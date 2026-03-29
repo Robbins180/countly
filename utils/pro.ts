@@ -10,12 +10,12 @@ export type PaywallReason = "counters" | "categories" | "history";
 export function getPaywallSubtitle(reason: PaywallReason): string {
   switch (reason) {
     case "counters":
-      return `Looks like you’ve hit the free limit of ${FREE_LIMITS.counters} counters.\nUpgrade to Pro to keep adding as many as you want.`;
+     return `Looks like you've hit the free limit of ${FREE_LIMITS.counters} counters.\nUpgrade to Pro to keep adding as many as you want.`;
     case "history":
       return `Want to see more of your progress?\nFree shows ${FREE_LIMITS.historyDays} days. Pro unlocks full history.`;
     case "categories":
-      return `You’re using categories—love that.\nFree includes ${FREE_LIMITS.categories} categories. Pro unlocks unlimited.`;
-  }
+      return `You're using categories — love that.\nFree includes ${FREE_LIMITS.categories} categories. Pro unlocks unlimited.`;
+ }
 }
 
 export function canCreateCounter(currentCount: number, isPro: boolean): boolean {

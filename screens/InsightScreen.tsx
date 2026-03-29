@@ -1,7 +1,16 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
-import useInsightMockData from "../hooks/useInsightMockData";
+import useInsightData from "../hooks/useInsightData";
 import { useHistoryThisWeek } from "../hooks/useHistoryThisWeek";
+
+ type RangeKey = "7" | "30" | "90" | "all";
+
+  const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
+    { key: "7", label: "7d" },
+    { key: "30", label: "30d" },
+    { key: "90", label: "90d" },
+    { key: "all", label: "All" },
+  ];
 
 export default function InsightScreen() {
 
@@ -16,7 +25,7 @@ export default function InsightScreen() {
     change,
     changePercent,
     isUp,
-  } = useInsightMockData(rangeDays);
+  } = useInsightData();
 
 
   const history = useHistoryThisWeek();
@@ -26,16 +35,7 @@ export default function InsightScreen() {
   const dueCount = dueSegment?.value ?? 0;
   const soonCount = soonSegment?.value ?? 0;
 
-  type RangeKey = "7" | "30" | "90" | "all";
-
-  const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
-    { key: "7", label: "7d" },
-    { key: "30", label: "30d" },
-    { key: "90", label: "90d" },
-    { key: "all", label: "All" },
-  ];
-
-
+ 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Header */}
