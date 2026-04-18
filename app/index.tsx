@@ -137,28 +137,7 @@ export default function Home() {
     };
   }, []);
 
-  // Recompute "completionsThisWeek" from history.events
-  async function recomputeHistoryCounts() {
-    try {
-      const raw = await AsyncStorage.getItem(HISTORY_KEY);
-      const list: CounterEvent[] = raw ? JSON.parse(raw) : [];
 
-      const now = Date.now();
-      const cutoff = now - 7 * MS_DAY; // last 7 days
-
-      const map: Record<string, number> = {};
-
-      for (const evt of list) {
-        if (evt.type !== "completed") continue;
-        if (evt.at < cutoff) continue;
-        map[evt.counterId] = (map[evt.counterId] ?? 0) + 1;
-      }
-
-      setCompletionsThisWeek(map);
-    } catch (e) {
-      console.error("Failed to recompute history counts", e);
-    }
-  }
 
   ////////////////////////////////////////////// functions //////////////////////////////////////
 
