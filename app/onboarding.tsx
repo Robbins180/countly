@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { countersRepo } from "../data";
+import { PRESETS } from "../data/presets";
 
 const SEEN_KEY = "onboarding.seen";
 
@@ -20,19 +22,29 @@ const TAGS = [
   "Low friction",
   "Calm by design",
 ];
-const IDEAS = [
-  "💇 Haircut",
-  "🛢️ Oil change",
-  "🏋️ Workout",
-  "💊 Medication",
-  "📞 Call family",
-];
 
 export default function Onboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
 
+  const [selected, setSelected] = useState<string[]>([]);
+
+  function togglePreset(title: string) {
+    setSelected((prev) =>
+      prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title],
+    );
+  }
+
   async function finish() {
+    for (const preset of PRESETS.filter((p) => selected.includes(p.title))) {
+      await countersRepo.add({
+        title: preset.title,
+        emoji: preset.emoji,
+        targetDays: preset.targetDays,
+        lastAt: Date.now(),
+        category: preset.category,
+      });
+    }
     await AsyncStorage.setItem(SEEN_KEY, "1");
     router.replace("/");
   }
@@ -433,25 +445,35 @@ export default function Onboarding() {
             }}
           >
             <Text style={{ color: textMuted, fontSize: 11, marginBottom: 12 }}>
-              Some ideas to get you started
+              Tap to add — you can always add more later
             </Text>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-              {IDEAS.map((idea) => (
-                <View
-                  key={idea}
-                  style={{
-                    paddingVertical: 6,
-                    paddingHorizontal: 12,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: border,
-                  }}
-                >
-                  <Text style={{ color: textPrimary, fontSize: 12 }}>
-                    {idea}
-                  </Text>
-                </View>
-              ))}
+              {PRESETS.map((preset) => {
+                const isSelected = selected.includes(preset.title);
+                return (
+                  <Pressable
+                    key={preset.title}
+                    onPress={() => togglePreset(preset.title)}
+                    style={{
+                      paddingVertical: 6,
+                      paddingHorizontal: 12,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: isSelected ? accent : border,
+                      backgroundColor: isSelected ? "#1A2A3A" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isSelected ? accent : textPrimary,
+                        fontSize: 12,
+                      }}
+                    >
+                      {preset.emoji} {preset.title}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
 

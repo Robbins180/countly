@@ -48,7 +48,7 @@ export function CounterCard({
     : false;
 
   // unify status: explicit beats computed
-  const effectiveStatus: "due" | "soon" | null =
+  const effectiveStatus: "due" | "soon" | "completed" | null =
     status ?? (computedOverdue ? "due" : null);
 
   // colors
@@ -77,7 +77,7 @@ export function CounterCard({
       ? OD
       : effectiveStatus === "soon"
         ? SOON
-        : effectiveStatus === "complete"
+        : effectiveStatus === "completed"
           ? COMPLETE
           : null;
 
@@ -89,7 +89,7 @@ export function CounterCard({
       style={{
         position: "relative",
         flex: 1,
-        minHeight: 120,
+        minHeight: 130,
         backgroundColor: theme.card,
         borderColor: activeColors ? activeColors.border : theme.border,
         borderWidth: 1,
@@ -101,21 +101,21 @@ export function CounterCard({
         shadowColor:
           effectiveStatus === "due"
             ? OD.text
-            : effectiveStatus === "complete"
+            : effectiveStatus === "completed"
               ? COMPLETE.text
               : "transparent",
         shadowOpacity:
-          effectiveStatus === "due" || effectiveStatus === "complete"
+          effectiveStatus === "due" || effectiveStatus === "completed"
             ? 0.25
             : 0,
         shadowRadius:
-          effectiveStatus === "due" || effectiveStatus === "complete" ? 10 : 0,
+          effectiveStatus === "due" || effectiveStatus === "completed" ? 10 : 0,
         shadowOffset:
-          effectiveStatus === "due" || effectiveStatus === "complete"
+          effectiveStatus === "due" || effectiveStatus === "completed"
             ? { width: 0, height: 6 }
             : { width: 0, height: 0 },
         elevation:
-          effectiveStatus === "due" || effectiveStatus === "complete" ? 5 : 0,
+          effectiveStatus === "due" || effectiveStatus === "completed" ? 5 : 0,
       }}
     >
       {(boostMultiplier ?? 1) > 1 && (boostMinsLeft ?? 0) > 0 && (
@@ -172,7 +172,14 @@ export function CounterCard({
         </View>
       )}
 
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingRight: effectiveStatus ? 60 : 0,
+        }}
+      >
         {emoji ? (
           <Text style={{ fontSize: 20 }}>{emoji}</Text>
         ) : (

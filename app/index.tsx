@@ -1,13 +1,26 @@
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, FlatList, Modal, Pressable, Text, TextInput, View, } from "react-native";
+import {
+  Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { CounterCard } from "../components/CounterCard";
 import { FAB } from "../components/FAB";
 import { Header } from "../components/Header";
 import { historyRepo } from "../data";
-import { cleanupExpired, getMultiplier, loadBoosts, saveBoosts, type Boost, } from "../utils/boost";
+import {
+  cleanupExpired,
+  getMultiplier,
+  loadBoosts,
+  saveBoosts,
+  type Boost,
+} from "../utils/boost";
 import { MS_DAY, daysSince } from "../utils/date";
 import { canCreateCounter, getPaywallSubtitle } from "../utils/pro";
 import { theme } from "../utils/theme";
@@ -136,8 +149,6 @@ export default function Home() {
       if (boostsTickRef.current) clearInterval(boostsTickRef.current);
     };
   }, []);
-
-
 
   ////////////////////////////////////////////// functions //////////////////////////////////////
 
@@ -800,13 +811,13 @@ export default function Home() {
             </View>
 
             <Text style={{ color: theme.text, marginBottom: 6 }}>
-              Target days
+              Remind me every ___ days
             </Text>
             <TextInput
               value={addTarget}
               onChangeText={setAddTarget}
               keyboardType="numeric"
-              placeholder="e.g. 30"
+              placeholder="e.g. 7"
               placeholderTextColor="#666"
               style={{
                 color: theme.text,
@@ -1218,13 +1229,13 @@ export default function Home() {
             </View>
 
             <Text style={{ color: theme.text, marginBottom: 6 }}>
-              Target days
+              Remind me every ___ days
             </Text>
             <TextInput
               value={editTarget}
               onChangeText={setEditTarget}
               keyboardType="numeric"
-              placeholder="e.g. 30"
+              placeholder="e.g. 7"
               placeholderTextColor="#666"
               style={{
                 color: theme.text,
